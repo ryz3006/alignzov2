@@ -164,44 +164,19 @@ export class TimeSessionsService {
           select: {
             id: true,
             email: true,
-              firstName: true,
-              lastName: true,
-            },
-          },
-          project: {
-            select: {
-              id: true,
-              name: true,
-              code: true,
-            },
+            firstName: true,
+            lastName: true,
           },
         },
-      });
-    } else {
-      timeSession = await this.prisma.timeSession.findFirst({
-        where: {
-          id: id,
-          userId: userId,
-        },
-        include: {
-          user: {
-            select: {
-              id: true,
-              email: true,
-              firstName: true,
-              lastName: true,
-            },
-          },
-          project: {
-            select: {
-              id: true,
-              name: true,
-              code: true,
-            },
+        project: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
           },
         },
-      });
-    }
+      },
+    });
 
     if (!timeSession) {
       throw new NotFoundException(`Time session with ID ${id} not found`);
