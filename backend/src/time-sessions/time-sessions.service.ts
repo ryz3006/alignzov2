@@ -196,6 +196,11 @@ export class TimeSessionsService {
     const currentPausedDuration = timeSession.pausedDuration || 0;
     const pauseStartTime = new Date();
     
+    // Handle metadata properly
+    const currentMetadata = typeof timeSession.metadata === 'object' && timeSession.metadata !== null 
+      ? timeSession.metadata as Record<string, any>
+      : {};
+    
     const pausedSession = await this.prisma.timeSession.update({
       where: {
         id: id,
@@ -205,7 +210,7 @@ export class TimeSessionsService {
         endTime: pauseStartTime,
         pausedDuration: currentPausedDuration, // Keep the existing paused duration
         metadata: {
-          ...timeSession.metadata,
+          ...currentMetadata,
           pauseStartTime: pauseStartTime.toISOString(),
         },
       },
@@ -239,10 +244,13 @@ export class TimeSessionsService {
     }
 
     // Calculate the additional paused time since last pause
-    const pauseStartTime = timeSession.metadata?.pauseStartTime;
+    const currentMetadata = typeof timeSession.metadata === 'object' && timeSession.metadata !== null 
+      ? timeSession.metadata as Record<string, any>
+      : {};
+    const pauseStartTime = currentMetadata.pauseStartTime;
     let additionalPausedTime = 0;
     
-    if (pauseStartTime) {
+    if (pauseStartTime && typeof pauseStartTime === 'string') {
       const pauseStart = new Date(pauseStartTime);
       const resumeTime = new Date();
       additionalPausedTime = resumeTime.getTime() - pauseStart.getTime();
@@ -260,7 +268,7 @@ export class TimeSessionsService {
         endTime: null, // Clear end time when resuming
         pausedDuration: totalPausedDuration,
         metadata: {
-          ...timeSession.metadata,
+          ...currentMetadata,
           pauseStartTime: null, // Clear pause start time
         },
       },
@@ -331,37 +339,37 @@ export class TimeSessionsService {
     }
 
     if (!timeSession.endTime) {
-      throw new ForbiddenException('Time session must have an end time to convert to work log');
+      throw new ForbiddenException('Time session must have an end time to be converted');
     }
 
-    // Calculate duration in seconds, accounting for paused time
-    const startTime = timeSession.startTime.getTime();
-    const endTime = timeSession.endTime.getTime();
-    const pausedDuration = timeSession.pausedDuration || 0;
-    const actualDuration = Math.max(0, endTime - startTime - pausedDuration);
-    const durationInSeconds = Math.floor(actualDuration / 1000);
+    // Calculate duration in seconds
+    const duration = Math.floor((timeSession.endTime.getTime() - timeSession.startTime.getTime()) / 1000);
 
-    // Create work log
+    // Create work log with all the category fields using any type to bypass Prisma type issues
+    const workLogData: any = {
+      userId: timeSession.userId,
+      projectId: timeSession.projectId,
+      ticketId: timeSession.ticketId,
+      description: timeSession.description || 'Time session converted to work log',
+      duration: duration,
+      startTime: timeSession.startTime,
+      endTime: timeSession.endTime,
+      isBillable: true,
+      importSource: 'time_session',
+      importId: timeSession.id,
+    };
+
+    // Add category fields if they exist (using type assertion to access schema fields)
+    const timeSessionAny = timeSession as any;
+    if (timeSessionAny.module) workLogData.module = timeSessionAny.module;
+    if (timeSessionAny.taskCategory) workLogData.taskCategory = timeSessionAny.taskCategory;
+    if (timeSessionAny.workCategory) workLogData.workCategory = timeSessionAny.workCategory;
+    if (timeSessionAny.severityCategory) workLogData.severityCategory = timeSessionAny.severityCategory;
+    if (timeSessionAny.sourceCategory) workLogData.sourceCategory = timeSessionAny.sourceCategory;
+    if (timeSessionAny.ticketReference) workLogData.ticketReference = timeSessionAny.ticketReference;
+
     const workLog = await this.prisma.workLog.create({
-      data: {
-        userId: timeSession.userId,
-        projectId: timeSession.projectId,
-        ticketId: timeSession.ticketId,
-        description: timeSession.description || 'Time session converted to work log',
-        duration: durationInSeconds,
-        startTime: timeSession.startTime,
-        endTime: timeSession.endTime,
-        isBillable: true,
-        importSource: 'time_session',
-        importId: timeSession.id,
-        // Transfer the new categories from time session to work log
-        module: timeSession.module,
-        taskCategory: timeSession.taskCategory,
-        workCategory: timeSession.workCategory,
-        severityCategory: timeSession.severityCategory,
-        sourceCategory: timeSession.sourceCategory,
-        ticketReference: timeSession.ticketReference,
-      },
+      data: workLogData,
       include: {
         user: {
           select: {
