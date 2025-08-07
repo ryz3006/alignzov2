@@ -1,0 +1,915 @@
+// Alignzo Database Schema
+// This schema supports all core modules and provides foundation for AI/RAG capabilities
+
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  extensions = [uuidOssp(map: "uuid-ossp")]
+}
+
+// ================================
+// USER MANAGEMENT & AUTHENTICATION
+// ================================
+
+model User {
+  id                String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email             String      @unique
+  firstName         String
+  lastName          String
+  displayName       String?
+  avatar            String?
+  phone             String?
+  timezone          String      @default("UTC")
+  locale            String      @default("en-US")
+  title             String?
+  department        String?
+  managerId         String?     @db.Uuid
+  isActive          Boolean     @default(true)
+  lastLoginAt       DateTime?
+  emailVerifiedAt   DateTime?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  // Self-referential relationship for manager hierarchy
+  manager           User?       @relation("UserHierarchy", fields: [managerId], references: [id])
+  subordinates      User[]      @relation("UserHierarchy")
+
+  // Authentication
+  authProviders     AuthProvider[]
+  sessions          UserSession[]
+
+  // Roles and Permissions
+  userRoles         UserRole[]
+  userPermissions   UserPermission[]
+
+  // Work and Time Management
+  projectMembers    ProjectMember[]
+  projectReporting  ProjectMember[] @relation("ProjectReporting")
+  teamMembers       TeamMember[]
+  workLogs          WorkLog[]
+  timeSessions      TimeSession[]
+
+  // Notifications and Social
+  notifications     Notification[]
+  kudosGiven        Kudos[]     @relation("KudosGiver")
+  kudosReceived     Kudos[]     @relation("KudosReceiver")
+  achievements      UserAchievement[]
+
+  // Leave Management (Future)
+  leaveRequests     LeaveRequest[]
+  leaveApprovals    LeaveApproval[]
+
+  // Audit Trail
+  auditLogs         AuditLog[]
+
+  @@map("users")
+}
+
+model AuthProvider {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String    @db.Uuid
+  provider        String    // google, microsoft, etc.
+  providerId      String    // External provider user ID
+  accessToken     String?
+  refreshToken    String?
+  expiresAt       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerId])
+  @@map("auth_providers")
+}
+
+model UserSession {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String    @db.Uuid
+  sessionToken    String    @unique
+  deviceInfo      String?
+  ipAddress       String?
+  userAgent       String?
+  isActive        Boolean   @default(true)
+  expiresAt       DateTime
+  createdAt       DateTime  @default(now())
+  lastAccessedAt  DateTime  @default(now())
+
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_sessions")
+}
+
+// ================================
+// ROLE-BASED ACCESS CONTROL (RBAC)
+// ================================
+
+model Role {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name            String        @unique
+  displayName     String
+  description     String?
+  level           AccessLevel   @default(INDIVIDUAL)
+  isSystem        Boolean       @default(false) // System roles cannot be deleted
+  isActive        Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  userRoles       UserRole[]
+  rolePermissions RolePermission[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id              String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name            String           @unique
+  displayName     String
+  description     String?
+  resource        String           // users, projects, time_logs, etc.
+  action          String           // create, read, update, delete, export, etc.
+  isSystem        Boolean          @default(false)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  rolePermissions RolePermission[]
+  userPermissions UserPermission[]
+
+  @@unique([resource, action])
+  @@map("permissions")
+}
+
+model UserRole {
+  id              String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String      @db.Uuid
+  roleId          String      @db.Uuid
+  scope           Json?       // For ABAC: project IDs, team IDs, etc.
+  grantedBy       String?     @db.Uuid
+  grantedAt       DateTime    @default(now())
+  expiresAt       DateTime?
+  isActive        Boolean     @default(true)
+
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role            Role        @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@map("user_roles")
+}
+
+model RolePermission {
+  id              String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  roleId          String      @db.Uuid
+  permissionId    String      @db.Uuid
+  createdAt       DateTime    @default(now())
+
+  role            Role        @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission      Permission  @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model UserPermission {
+  id              String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String      @db.Uuid
+  permissionId    String      @db.Uuid
+  scope           Json?       // For ABAC
+  grantedBy       String?     @db.Uuid
+  grantedAt       DateTime    @default(now())
+  expiresAt       DateTime?
+  isActive        Boolean     @default(true)
+
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permission      Permission  @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, permissionId])
+  @@map("user_permissions")
+}
+
+// ================================
+// PROJECT & TEAM MANAGEMENT
+// ================================
+
+model Organization {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name            String
+  domain          String    @unique // Email domain restriction
+  logo            String?
+  settings        Json      @default("{}")
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  projects        Project[]
+  teams           Team[]
+
+  @@map("organizations")
+}
+
+model Project {
+  id              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId  String          @db.Uuid
+  name            String
+  description     String?
+  code            String          // Unique project code
+  status          ProjectStatus   @default(PLANNING)
+  priority        Priority        @default(MEDIUM)
+  startDate       DateTime?
+  endDate         DateTime?
+  budget          Decimal?        @db.Decimal(15, 2)
+  currency        String          @default("USD")
+  clientName      String?
+  ownerId         String          @db.Uuid
+  settings        Json            @default("{}")
+  isActive        Boolean         @default(true)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  organization    Organization    @relation(fields: [organizationId], references: [id])
+  owner           User            @relation(fields: [ownerId], references: [id])
+
+  members         ProjectMember[]
+  teams           ProjectTeam[]
+  workLogs        WorkLog[]
+  tickets         Ticket[]
+  milestones      Milestone[]
+
+  @@unique([organizationId, code])
+  @@map("projects")
+}
+
+model Team {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId  String        @db.Uuid
+  name            String
+  description     String?
+  leaderId        String        @db.Uuid
+  settings        Json          @default("{}")
+  isActive        Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  organization    Organization  @relation(fields: [organizationId], references: [id])
+  leader          User          @relation(fields: [leaderId], references: [id])
+
+  members         TeamMember[]
+  projects        ProjectTeam[]
+  schedules       ShiftSchedule[]
+
+  @@map("teams")
+}
+
+model ProjectMember {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId       String        @db.Uuid
+  userId          String        @db.Uuid
+  role            String        @default("member") // owner, manager, member, viewer
+  reportingToId   String?       @db.Uuid // Project-specific reporting manager
+  hourlyRate      Decimal?      @db.Decimal(8, 2)
+  joinedAt        DateTime      @default(now())
+  leftAt          DateTime?
+  isActive        Boolean       @default(true)
+
+  project         Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reportingTo     User?         @relation("ProjectReporting", fields: [reportingToId], references: [id])
+
+  @@unique([projectId, userId])
+  @@map("project_members")
+}
+
+model TeamMember {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  teamId          String    @db.Uuid
+  userId          String    @db.Uuid
+  role            String    @default("member") // lead, member
+  joinedAt        DateTime  @default(now())
+  leftAt          DateTime?
+  isActive        Boolean   @default(true)
+
+  team            Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@map("team_members")
+}
+
+model ProjectTeam {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId       String    @db.Uuid
+  teamId          String    @db.Uuid
+  assignedAt      DateTime  @default(now())
+  isActive        Boolean   @default(true)
+
+  project         Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  team            Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, teamId])
+  @@map("project_teams")
+}
+
+model Milestone {
+  id              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId       String          @db.Uuid
+  name            String
+  description     String?
+  dueDate         DateTime
+  status          MilestoneStatus @default(PENDING)
+  completedAt     DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  project         Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("milestones")
+}
+
+// ================================
+// TIME TRACKING & WORK LOGS
+// ================================
+
+model WorkLog {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String        @db.Uuid
+  projectId       String        @db.Uuid
+  ticketId        String?       @db.Uuid
+  description     String
+  duration        Int           // Duration in seconds
+  startTime       DateTime
+  endTime         DateTime
+  isBillable      Boolean       @default(true)
+  hourlyRate      Decimal?      @db.Decimal(8, 2)
+  tags            String[]      @default([])
+  metadata        Json          @default("{}")
+  importSource    String?       // clockify, jira, manual, etc.
+  importId        String?       // External system ID
+  isApproved      Boolean       @default(false)
+  approvedBy      String?       @db.Uuid
+  approvedAt      DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project         Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  ticket          Ticket?       @relation(fields: [ticketId], references: [id])
+
+  @@index([userId, startTime])
+  @@index([projectId, startTime])
+  @@index([startTime])
+  @@map("work_logs")
+}
+
+model TimeSession {
+  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String            @db.Uuid
+  projectId       String            @db.Uuid
+  ticketId        String?           @db.Uuid
+  description     String?
+  startTime       DateTime
+  endTime         DateTime?
+  status          TimeSessionStatus @default(RUNNING)
+  metadata        Json              @default("{}")
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@map("time_sessions")
+}
+
+model Ticket {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId       String        @db.Uuid
+  externalId      String        // JIRA key, Remedy ID, etc.
+  title           String
+  description     String?
+  status          String
+  priority        String?
+  type            String?       // bug, feature, task, etc.
+  assigneeId      String?       @db.Uuid
+  reporterId      String?       @db.Uuid
+  labels          String[]      @default([])
+  estimatedHours  Decimal?      @db.Decimal(8, 2)
+  source          String        // jira, remedy, manual
+  sourceData      Json          @default("{}")
+  lastSyncAt      DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  project         Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  workLogs        WorkLog[]
+
+  @@unique([projectId, externalId])
+  @@index([source, externalId])
+  @@map("tickets")
+}
+
+// ================================
+// INTEGRATIONS
+// ================================
+
+model Integration {
+  id              String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name            String
+  type            IntegrationType
+  config          Json                // Encrypted configuration
+  isActive        Boolean             @default(true)
+  lastSyncAt      DateTime?
+  syncStatus      IntegrationStatus   @default(INACTIVE)
+  errorMessage    String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  syncLogs        IntegrationSyncLog[]
+
+  @@map("integrations")
+}
+
+model IntegrationSyncLog {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  integrationId   String        @db.Uuid
+  operation       String        // sync, import, export
+  status          String        // success, error, partial
+  recordsProcessed Int          @default(0)
+  recordsSuccess  Int           @default(0)
+  recordsError    Int           @default(0)
+  errorDetails    Json?
+  startedAt       DateTime      @default(now())
+  completedAt     DateTime?
+  duration        Int?          // Duration in seconds
+
+  integration     Integration   @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+
+  @@map("integration_sync_logs")
+}
+
+// ================================
+// NOTIFICATIONS & COMMUNICATION
+// ================================
+
+model Notification {
+  id              String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String              @db.Uuid
+  type            NotificationType
+  title           String
+  message         String
+  data            Json                @default("{}")
+  isRead          Boolean             @default(false)
+  readAt          DateTime?
+  channel         String              @default("in_app") // in_app, email, sms
+  priority        Priority            @default(MEDIUM)
+  expiresAt       DateTime?
+  createdAt       DateTime            @default(now())
+
+  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+// ================================
+// SYSTEM CONFIGURATION
+// ================================
+
+model SystemSetting {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  key             String    @unique
+  value           Json
+  description     String?
+  category        String    @default("general")
+  isPublic        Boolean   @default(false) // Can be accessed by frontend
+  updatedBy       String?   @db.Uuid
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("system_settings")
+}
+
+model CustomField {
+  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name            String
+  key             String
+  type            CustomFieldType
+  options         Json?             // For select/multi-select fields
+  isRequired      Boolean           @default(false)
+  defaultValue    Json?
+  entity          String            // project, work_log, user, etc.
+  isActive        Boolean           @default(true)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@unique([entity, key])
+  @@map("custom_fields")
+}
+
+// ================================
+// AUDIT & COMPLIANCE
+// ================================
+
+model AuditLog {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String?   @db.Uuid
+  action          String    // CREATE, UPDATE, DELETE, LOGIN, etc.
+  entity          String    // users, projects, work_logs, etc.
+  entityId        String?   @db.Uuid
+  oldValues       Json?
+  newValues       Json?
+  ipAddress       String?
+  userAgent       String?
+  sessionId       String?
+  metadata        Json      @default("{}")
+  timestamp       DateTime  @default(now())
+
+  user            User?     @relation(fields: [userId], references: [id])
+
+  @@index([userId, timestamp])
+  @@index([entity, entityId])
+  @@index([timestamp])
+  @@map("audit_logs")
+}
+
+// ================================
+// DATA IMPORT/EXPORT
+// ================================
+
+model ImportSession {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String        @db.Uuid
+  type            String        // work_logs, projects, users, etc.
+  source          String        // clockify, jira, csv, etc.
+  fileName        String
+  fileSize        Int
+  totalRecords    Int           @default(0)
+  processedRecords Int          @default(0)
+  successRecords  Int           @default(0)
+  errorRecords    Int           @default(0)
+  status          ImportStatus  @default(PENDING)
+  errorDetails    Json?
+  startedAt       DateTime      @default(now())
+  completedAt     DateTime?
+  settings        Json          @default("{}")
+
+  @@map("import_sessions")
+}
+
+model ExportSession {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String        @db.Uuid
+  type            String        // work_logs, projects, analytics, etc.
+  format          String        // csv, json, excel
+  filters         Json          @default("{}")
+  fileName        String?
+  fileSize        Int?
+  recordCount     Int?
+  status          ExportStatus  @default(PENDING)
+  downloadUrl     String?
+  expiresAt       DateTime?
+  startedAt       DateTime      @default(now())
+  completedAt     DateTime?
+
+  @@map("export_sessions")
+}
+
+// ================================
+// AI/RAG FOUNDATION
+// ================================
+
+model KnowledgeBase {
+  id              String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name            String
+  description     String?
+  type            KnowledgeBaseType   @default(GENERAL)
+  isActive        Boolean             @default(true)
+  settings        Json                @default("{}")
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  documents       Document[]
+
+  @@map("knowledge_bases")
+}
+
+model Document {
+  id              String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  knowledgeBaseId String              @db.Uuid
+  title           String
+  content         String
+  type            DocumentType        @default(TEXT)
+  source          String?             // URL, file path, etc.
+  metadata        Json                @default("{}")
+  // embedding       Unsupported("vector(1536)")? // OpenAI embedding dimension - disabled for now
+  isIndexed       Boolean             @default(false)
+  indexedAt       DateTime?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  knowledgeBase   KnowledgeBase       @relation(fields: [knowledgeBaseId], references: [id], onDelete: Cascade)
+
+  @@map("documents")
+}
+
+model ChatSession {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String        @db.Uuid
+  title           String?
+  isActive        Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  messages        ChatMessage[]
+
+  @@map("chat_sessions")
+}
+
+model ChatMessage {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sessionId       String        @db.Uuid
+  role            String        // user, assistant, system
+  content         String
+  metadata        Json          @default("{}")
+  createdAt       DateTime      @default(now())
+
+  session         ChatSession   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("chat_messages")
+}
+
+// ================================
+// SOCIAL & RECOGNITION (Future)
+// ================================
+
+model Kudos {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  giverId         String    @db.Uuid
+  receiverId      String    @db.Uuid
+  message         String
+  type            String    @default("general") // teamwork, innovation, leadership, etc.
+  isPublic        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+
+  giver           User      @relation("KudosGiver", fields: [giverId], references: [id], onDelete: Cascade)
+  receiver        User      @relation("KudosReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@map("kudos")
+}
+
+model Achievement {
+  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name            String
+  description     String
+  icon            String?
+  criteria        Json              // Achievement criteria
+  points          Int               @default(0)
+  isActive        Boolean           @default(true)
+  createdAt       DateTime          @default(now())
+
+  userAchievements UserAchievement[]
+
+  @@map("achievements")
+}
+
+model UserAchievement {
+  id              String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String      @db.Uuid
+  achievementId   String      @db.Uuid
+  earnedAt        DateTime    @default(now())
+  metadata        Json        @default("{}")
+
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement     Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId])
+  @@map("user_achievements")
+}
+
+// ================================
+// LEAVE MANAGEMENT (Future)
+// ================================
+
+model LeaveType {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name            String        @unique
+  description     String?
+  maxDaysPerYear  Int?
+  isActive        Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+
+  leaveRequests   LeaveRequest[]
+
+  @@map("leave_types")
+}
+
+model LeaveRequest {
+  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String            @db.Uuid
+  leaveTypeId     String            @db.Uuid
+  startDate       DateTime
+  endDate         DateTime
+  days            Decimal           @db.Decimal(4, 1)
+  reason          String?
+  status          LeaveStatus       @default(PENDING)
+  submittedAt     DateTime          @default(now())
+
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  leaveType       LeaveType         @relation(fields: [leaveTypeId], references: [id])
+  approvals       LeaveApproval[]
+
+  @@map("leave_requests")
+}
+
+model LeaveApproval {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  leaveRequestId  String        @db.Uuid
+  approverId      String        @db.Uuid
+  status          LeaveStatus   @default(PENDING)
+  comments        String?
+  decidedAt       DateTime?
+  createdAt       DateTime      @default(now())
+
+  leaveRequest    LeaveRequest  @relation(fields: [leaveRequestId], references: [id], onDelete: Cascade)
+  approver        User          @relation(fields: [approverId], references: [id])
+
+  @@map("leave_approvals")
+}
+
+// ================================
+// SHIFT SCHEDULE MANAGEMENT (Future)
+// ================================
+
+model ShiftSchedule {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  teamId          String        @db.Uuid
+  name            String
+  description     String?
+  startDate       DateTime
+  endDate         DateTime?
+  isActive        Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  team            Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  shifts          Shift[]
+
+  @@map("shift_schedules")
+}
+
+model Shift {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  scheduleId      String        @db.Uuid
+  userId          String        @db.Uuid
+  date            DateTime      @db.Date
+  startTime       DateTime      @db.Time
+  endTime         DateTime      @db.Time
+  breakMinutes    Int           @default(0)
+  notes           String?
+  status          ShiftStatus   @default(SCHEDULED)
+
+  schedule        ShiftSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  @@unique([scheduleId, userId, date])
+  @@map("shifts")
+}
+
+// ================================
+// ENUMS
+// ================================
+
+enum AccessLevel {
+  FULL_ACCESS   // System-wide access
+  PROJECT       // Access to specific projects
+  TEAM          // Access to specific teams
+  INDIVIDUAL    // Access to own data only
+}
+
+enum ProjectStatus {
+  PLANNING
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  CANCELLED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum MilestoneStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum TimeSessionStatus {
+  RUNNING
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+enum IntegrationType {
+  PROJECT_MANAGEMENT  // JIRA, Remedy
+  MONITORING         // Nagios, Prometheus
+  ANALYTICS          // Elasticsearch, Grafana
+  AUTHENTICATION     // LDAP, SAML
+  COMMUNICATION      // Slack, Teams
+  FILE_STORAGE       // S3, Google Drive
+}
+
+enum IntegrationStatus {
+  INACTIVE
+  ACTIVE
+  ERROR
+  SYNCING
+}
+
+enum NotificationType {
+  SYSTEM
+  PROJECT_UPDATE
+  TIME_REMINDER
+  APPROVAL_REQUEST
+  ACHIEVEMENT
+  MENTION
+}
+
+enum ImportStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  PARTIAL
+}
+
+enum ExportStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum CustomFieldType {
+  TEXT
+  NUMBER
+  DATE
+  BOOLEAN
+  SELECT
+  MULTI_SELECT
+  EMAIL
+  URL
+}
+
+enum KnowledgeBaseType {
+  GENERAL
+  PROJECT_SPECIFIC
+  TECHNICAL_DOCS
+  POLICIES
+  FAQ
+}
+
+enum DocumentType {
+  TEXT
+  PDF
+  WORD
+  EXCEL
+  IMAGE
+  VIDEO
+  AUDIO
+  CODE
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum ShiftStatus {
+  SCHEDULED
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+// ================================
+// INDEXES FOR PERFORMANCE
+// ================================
+
+// Additional indexes are defined inline with the models above
+// Key performance indexes:
+// - work_logs: userId + startTime, projectId + startTime, startTime
+// - notifications: userId + isRead, userId + createdAt
+// - audit_logs: userId + timestamp, entity + entityId, timestamp
+// - time_sessions: userId + status
+// - tickets: source + externalId

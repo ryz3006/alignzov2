@@ -1,0 +1,384 @@
+# Alignzo - Git Ignore Configuration
+
+# ================================
+# ENVIRONMENT & CONFIGURATION
+# ================================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.envrc
+
+# Firebase service account keys (CRITICAL - Never commit)
+configs/firebase/*.json
+!configs/firebase/README.md
+
+# Database credentials and backups
+*.sql
+*.backup
+database_backups/
+
+# ================================
+# NODE.JS & NPM
+# ================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Package-lock files (commit yarn.lock if using yarn)
+package-lock.json
+yarn.lock
+
+# npm cache
+.npm
+
+# Optional npm cache directory
+.npm-cache
+
+# ================================
+# FRONTEND (NEXT.JS)
+# ================================
+.next/
+out/
+build/
+dist/
+
+# Static file build output
+.vercel
+.netlify
+
+# Storybook build outputs
+storybook-static/
+
+# Bundle analyzer output
+.next/analyze/
+
+# ================================
+# BACKEND (NESTJS)
+# ================================
+dist/
+build/
+
+# Logs
+logs/
+*.log
+
+# Coverage directory used by tools like istanbul
+coverage/
+.nyc_output
+
+# ================================
+# PRISMA & DATABASE
+# ================================
+# Prisma client (auto-generated)
+node_modules/.prisma/
+prisma/generated/
+
+# Migration files (should be committed, but keeping for reference)
+# prisma/migrations/
+
+# ================================
+# TYPESCRIPT
+# ================================
+*.tsbuildinfo
+
+# ================================
+# IDEs & EDITORS
+# ================================
+# VSCode
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# WebStorm
+.webstorm/
+
+# Sublime Text
+*.sublime-workspace
+*.sublime-project
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# ================================
+# OPERATING SYSTEMS
+# ================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ================================
+# TESTING
+# ================================
+# Jest
+coverage/
+.nyc_output/
+
+# Playwright
+test-results/
+playwright-report/
+
+# ================================
+# DOCKER
+# ================================
+# Docker files (keep Dockerfile, ignore runtime files)
+.dockerignore
+*.log
+
+# ================================
+# CLOUD & DEPLOYMENT
+# ================================
+# AWS
+.aws/
+
+# Terraform
+*.tfstate
+*.tfstate.*
+*.tfvars
+.terraform/
+
+# Kubernetes
+*.kubeconfig
+
+# ================================
+# MONITORING & LOGS
+# ================================
+# Log files
+*.log
+logs/
+log/
+
+# PID files
+*.pid
+*.seed
+*.pid.lock
+
+# ================================
+# CACHE & TEMPORARY FILES
+# ================================
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Temporary folders
+tmp/
+temp/
+
+# Optional REPL history
+.node_repl_history
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Optional stylelint cache
+.stylelintcache
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Optional REPL history
+.node_repl_history
+
+# ================================
+# AI/ML & DATA
+# ================================
+# Model files and data
+*.model
+*.pkl
+*.joblib
+*.h5
+*.pb
+
+# Vector database files
+vectors/
+embeddings/
+
+# Training data
+data/raw/
+data/processed/
+datasets/
+
+# ================================
+# SECURITY & CERTIFICATES
+# ================================
+# SSL certificates
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
+*.pfx
+
+# SSH keys
+id_rsa
+id_rsa.pub
+*.ppk
+
+# GPG keys
+*.gpg
+*.asc
+
+# ================================
+# THIRD-PARTY INTEGRATIONS
+# ================================
+# API keys and secrets (patterns)
+*secret*
+*credential*
+*token*
+*apikey*
+
+# JIRA/Confluence
+atlassian-ide-plugin.xml
+
+# ================================
+# BUILD ARTIFACTS
+# ================================
+# Build outputs
+build/
+dist/
+out/
+
+# Compiled source
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+
+# Archives
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# ================================
+# DOCUMENTATION BUILDS
+# ================================
+# Generated documentation
+docs/build/
+docs/.vuepress/dist/
+
+# API documentation builds
+api-docs/
+
+# ================================
+# PERFORMANCE & PROFILING
+# ================================
+# Performance monitoring
+.clinic/
+profile/
+*.cpuprofile
+*.heapsnapshot
+
+# ================================
+# MISC
+# ================================
+# Editor backup files
+*~
+.#*
+#*#
+
+# Ignore all .env files except .env.example
+.env*
+!.env.example
+
+# Local history
+.history/
+
+# Custom ignore rules for specific tools
+*.tgz
+*.tar.gz
+
+# ================================
+# PROJECT SPECIFIC IGNORES
+# ================================
+# Alignzo specific ignores
+uploads/
+exports/
+imports/
+backups/
+
+# Generated reports
+reports/
+analytics/
+
+# Local development overrides
+local-config/
+dev-overrides/
+
+# Alignment-specific temp files
+.alignzo-cache/
+.alignzo-temp/
