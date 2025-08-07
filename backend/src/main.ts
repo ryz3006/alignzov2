@@ -15,19 +15,20 @@ async function bootstrap() {
   // Get logger service
   const logger = app.get(LoggerService);
 
-  // Security middleware - temporarily disabled for CORS testing
-  // app.use(helmet({
-  //   crossOriginResourcePolicy: { policy: "cross-origin" },
-  //   crossOriginEmbedderPolicy: false,
-  //   contentSecurityPolicy: {
-  //     directives: {
-  //       defaultSrc: ["'self'"],
-  //       styleSrc: ["'self'", "'unsafe-inline'"],
-  //       scriptSrc: ["'self'"],
-  //       imgSrc: ["'self'", "data:", "https:"],
-  //     },
-  //   },
-  // }));
+  // Security middleware
+  app.use(helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    crossOriginEmbedderPolicy: false,
+    crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        scriptSrc: ["'self'"],
+        imgSrc: ["'self'", "data:", "https:"],
+      },
+    },
+  }));
   app.use(compression());
   
   // Cookie parsing middleware
