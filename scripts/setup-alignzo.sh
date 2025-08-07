@@ -91,6 +91,39 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
+# Function to check if package is installed (for different package managers)
+package_installed() {
+    local package=$1
+    local package_manager=$2
+    
+    case $package_manager in
+        "apt")
+            dpkg -l "$package" >/dev/null 2>&1
+            ;;
+        "yum"|"dnf")
+            rpm -q "$package" >/dev/null 2>&1
+            ;;
+        "brew")
+            brew list "$package" >/dev/null 2>&1
+            ;;
+        *)
+            command_exists "$package"
+            ;;
+    esac
+}
+
+# Function to check if npm package is installed
+npm_package_installed() {
+    local package_name=$1
+    local package_dir=$2
+    
+    if [[ -d "$package_dir/node_modules" ]] && [[ -f "$package_dir/package-lock.json" ]]; then
+        return 0  # Package is installed
+    else
+        return 1  # Package is not installed
+    fi
+}
+
 # Function to detect OS
 detect_os() {
     log "STEP" "Detecting operating system..."
@@ -188,25 +221,53 @@ check_prerequisites() {
     return 0
 }
 
-# Function to install missing packages based on OS
+# Function to install missing packages
 install_packages() {
     log "STEP" "Installing required packages..."
     
     case $OS in
         "ubuntu"|"debian")
             log "INFO" "Installing packages using apt..."
-            sudo apt-get update
-            sudo apt-get install -y curl wget build-essential python3
+            sudo apt-get update -y
+            
+            # Check and install packages only if not already installed
+            local packages=("curl" "wget" "gcc" "g++" "make" "python3")
+            for package in "${packages[@]}"; do
+                if ! package_installed "$package" "apt"; then
+                    log "INFO" "Installing $package..."
+                    sudo apt-get install -y "$package"
+                else
+                    log "INFO" "$package is already installed, skipping..."
+                fi
+            done
             ;;
         "centos"|"rhel")
             log "INFO" "Installing packages using yum..."
             sudo yum update -y
-            sudo yum install -y curl wget gcc gcc-c++ make python3
+            
+            local packages=("curl" "wget" "gcc" "gcc-c++" "make" "python3")
+            for package in "${packages[@]}"; do
+                if ! package_installed "$package" "yum"; then
+                    log "INFO" "Installing $package..."
+                    sudo yum install -y "$package"
+                else
+                    log "INFO" "$package is already installed, skipping..."
+                fi
+            done
             ;;
         "fedora")
             log "INFO" "Installing packages using dnf..."
             sudo dnf update -y
-            sudo dnf install -y curl wget gcc gcc-c++ make python3
+            
+            local packages=("curl" "wget" "gcc" "gcc-c++" "make" "python3")
+            for package in "${packages[@]}"; do
+                if ! package_installed "$package" "dnf"; then
+                    log "INFO" "Installing $package..."
+                    sudo dnf install -y "$package"
+                else
+                    log "INFO" "$package is already installed, skipping..."
+                fi
+            done
             ;;
         "macos")
             log "INFO" "Installing packages using Homebrew..."
@@ -215,7 +276,16 @@ install_packages() {
                 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
             fi
             brew update
-            brew install curl wget python3
+            
+            local packages=("curl" "wget" "python3")
+            for package in "${packages[@]}"; do
+                if ! package_installed "$package" "brew"; then
+                    log "INFO" "Installing $package..."
+                    brew install "$package"
+                else
+                    log "INFO" "$package is already installed, skipping..."
+                fi
+            done
             ;;
         "windows")
             log "WARN" "Windows detected. Please use the PowerShell script: setup-alignzo.ps1"
@@ -237,15 +307,33 @@ install_nodejs() {
         
         case $OS in
             "ubuntu"|"debian")
-                curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-                sudo apt-get install -y nodejs
+                if ! package_installed "nodejs" "apt"; then
+                    curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+                    sudo apt-get install -y nodejs
+                else
+                    log "INFO" "Node.js is already installed, checking version..."
+                    NODE_VERSION=$(node --version)
+                    log "INFO" "Node.js version: $NODE_VERSION"
+                fi
                 ;;
             "centos"|"rhel"|"fedora")
-                curl -fsSL https://rpm.nodesource.com/setup_20.x | sudo bash -
-                sudo yum install -y nodejs
+                if ! package_installed "nodejs" "yum"; then
+                    curl -fsSL https://rpm.nodesource.com/setup_20.x | sudo bash -
+                    sudo yum install -y nodejs
+                else
+                    log "INFO" "Node.js is already installed, checking version..."
+                    NODE_VERSION=$(node --version)
+                    log "INFO" "Node.js version: $NODE_VERSION"
+                fi
                 ;;
             "macos")
-                brew install node@20
+                if ! package_installed "node@20" "brew"; then
+                    brew install node@20
+                else
+                    log "INFO" "Node.js is already installed, checking version..."
+                    NODE_VERSION=$(node --version)
+                    log "INFO" "Node.js version: $NODE_VERSION"
+                fi
                 ;;
             "windows")
                 log "WARN" "Windows detected. Please use the PowerShell script: setup-alignzo.ps1"
@@ -266,6 +354,9 @@ install_nodejs() {
             log "ERROR" "Node.js installation failed"
             return 1
         fi
+    else
+        NODE_VERSION=$(node --version)
+        log "INFO" "Node.js is already installed: $NODE_VERSION"
     fi
 }
 
@@ -276,19 +367,36 @@ install_postgresql() {
         
         case $OS in
             "ubuntu"|"debian")
-                sudo apt-get install -y postgresql postgresql-contrib
-                sudo systemctl start postgresql
-                sudo systemctl enable postgresql
+                if ! package_installed "postgresql" "apt"; then
+                    sudo apt-get install -y postgresql postgresql-contrib
+                    sudo systemctl start postgresql
+                    sudo systemctl enable postgresql
+                else
+                    log "INFO" "PostgreSQL is already installed, starting service..."
+                    sudo systemctl start postgresql
+                    sudo systemctl enable postgresql
+                fi
                 ;;
             "centos"|"rhel"|"fedora")
-                sudo yum install -y postgresql postgresql-server postgresql-contrib
-                sudo postgresql-setup initdb
-                sudo systemctl start postgresql
-                sudo systemctl enable postgresql
+                if ! package_installed "postgresql" "yum"; then
+                    sudo yum install -y postgresql postgresql-server postgresql-contrib
+                    sudo postgresql-setup initdb
+                    sudo systemctl start postgresql
+                    sudo systemctl enable postgresql
+                else
+                    log "INFO" "PostgreSQL is already installed, starting service..."
+                    sudo systemctl start postgresql
+                    sudo systemctl enable postgresql
+                fi
                 ;;
             "macos")
-                brew install postgresql@14
-                brew services start postgresql@14
+                if ! package_installed "postgresql@14" "brew"; then
+                    brew install postgresql@14
+                    brew services start postgresql@14
+                else
+                    log "INFO" "PostgreSQL is already installed, starting service..."
+                    brew services start postgresql@14
+                fi
                 ;;
             "windows")
                 log "WARN" "Windows detected. Please use the PowerShell script: setup-alignzo.ps1"
@@ -309,6 +417,9 @@ install_postgresql() {
             log "ERROR" "PostgreSQL installation failed"
             return 1
         fi
+    else
+        PSQL_VERSION=$(psql --version)
+        log "INFO" "PostgreSQL is already installed: $PSQL_VERSION"
     fi
 }
 
@@ -350,24 +461,36 @@ install_dependencies() {
     
     # Install root dependencies
     if [[ -f "package.json" ]]; then
-        log "INFO" "Installing root dependencies..."
-        npm install
+        if npm_package_installed "root" "."; then
+            log "INFO" "Root dependencies are already installed, skipping..."
+        else
+            log "INFO" "Installing root dependencies..."
+            npm install
+        fi
     fi
     
     # Install backend dependencies
     if [[ -d "$BACKEND_DIR" ]] && [[ -f "$BACKEND_DIR/package.json" ]]; then
-        log "INFO" "Installing backend dependencies..."
-        cd "$BACKEND_DIR"
-        npm install
-        cd ..
+        if npm_package_installed "backend" "$BACKEND_DIR"; then
+            log "INFO" "Backend dependencies are already installed, skipping..."
+        else
+            log "INFO" "Installing backend dependencies..."
+            cd "$BACKEND_DIR"
+            npm install
+            cd ..
+        fi
     fi
     
     # Install frontend dependencies
     if [[ -d "$FRONTEND_DIR" ]] && [[ -f "$FRONTEND_DIR/package.json" ]]; then
-        log "INFO" "Installing frontend dependencies..."
-        cd "$FRONTEND_DIR"
-        npm install
-        cd ..
+        if npm_package_installed "frontend" "$FRONTEND_DIR"; then
+            log "INFO" "Frontend dependencies are already installed, skipping..."
+        else
+            log "INFO" "Installing frontend dependencies..."
+            cd "$FRONTEND_DIR"
+            npm install
+            cd ..
+        fi
     fi
     
     log "SUCCESS" "Dependencies installation completed"
@@ -398,9 +521,14 @@ setup_prisma() {
     
     cd "$BACKEND_DIR"
     
-    # Generate Prisma client
-    log "INFO" "Generating Prisma client..."
-    npx prisma generate
+    # Check if Prisma client is already generated
+    if [[ -d "node_modules/.prisma" ]] && [[ -f "node_modules/.prisma/client/index.js" ]]; then
+        log "INFO" "Prisma client is already generated, skipping generation..."
+    else
+        # Generate Prisma client
+        log "INFO" "Generating Prisma client..."
+        npx prisma generate
+    fi
     
     # Push database schema
     log "INFO" "Pushing database schema..."
@@ -417,9 +545,41 @@ seed_database() {
     
     cd "$BACKEND_DIR"
     
-    # Run database seed
-    log "INFO" "Running database seed..."
-    npx prisma db seed
+    # Check if database is already seeded by checking for existing data
+    log "INFO" "Checking if database is already seeded..."
+    SEEDED=$(npx ts-node -e "
+    const { PrismaClient } = require('@prisma/client');
+    const prisma = new PrismaClient();
+    
+    async function checkSeeded() {
+        try {
+            const userCount = await prisma.user.count();
+            const roleCount = await prisma.role.count();
+            const orgCount = await prisma.organization.count();
+            
+            // Consider seeded if we have users, roles, and organizations
+            if (userCount > 0 && roleCount > 0 && orgCount > 0) {
+                console.log('true');
+            } else {
+                console.log('false');
+            }
+        } catch (error) {
+            console.log('false');
+        } finally {
+            await prisma.\$disconnect();
+        }
+    }
+    
+    checkSeeded();
+    ")
+    
+    if [[ "$SEEDED" == "true" ]]; then
+        log "INFO" "Database is already seeded, skipping..."
+    else
+        # Run database seed
+        log "INFO" "Running database seed..."
+        npx prisma db seed
+    fi
     
     cd ..
     

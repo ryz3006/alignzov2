@@ -104,6 +104,56 @@ function Test-Command {
     }
 }
 
+# Function to check if package is installed (for different package managers)
+function Test-PackageInstalled {
+    param(
+        [string]$Package,
+        [string]$PackageManager
+    )
+    
+    switch ($PackageManager) {
+        "choco" {
+            try {
+                choco list --local-only $Package | Out-Null
+                return $true
+            }
+            catch {
+                return $false
+            }
+        }
+        "winget" {
+            try {
+                winget list $Package | Out-Null
+                return $true
+            }
+            catch {
+                return $false
+            }
+        }
+        default {
+            return Test-Command $Package
+        }
+    }
+}
+
+# Function to check if npm package is installed
+function Test-NpmPackageInstalled {
+    param(
+        [string]$PackageName,
+        [string]$PackageDir
+    )
+    
+    $nodeModulesPath = Join-Path $PackageDir "node_modules"
+    $packageLockPath = Join-Path $PackageDir "package-lock.json"
+    
+    if ((Test-Path $nodeModulesPath) -and (Test-Path $packageLockPath)) {
+        return $true  # Package is installed
+    }
+    else {
+        return $false  # Package is not installed
+    }
+}
+
 # Function to detect OS
 function Detect-OS {
     Write-Log "STEP" "Detecting operating system..."
@@ -188,9 +238,17 @@ function Install-Packages {
         iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
     }
     
-    # Install basic packages
-    Write-Log "INFO" "Installing packages using Chocolatey..."
-    choco install curl wget python3 -y
+    # Install basic packages only if not already installed
+    $packages = @("curl", "wget", "python3")
+    foreach ($package in $packages) {
+        if (-not (Test-PackageInstalled $package "choco")) {
+            Write-Log "INFO" "Installing $package..."
+            choco install $package -y
+        }
+        else {
+            Write-Log "INFO" "$package is already installed, skipping..."
+        }
+    }
     
     Write-Log "SUCCESS" "Package installation completed"
 }
@@ -200,7 +258,15 @@ function Install-NodeJS {
     if (-not (Test-Command "node") -or [int]((node --version).TrimStart('v').Split('.')[0]) -lt 18) {
         Write-Log "STEP" "Installing Node.js 18+..."
         
-        choco install nodejs -y
+        if (-not (Test-PackageInstalled "nodejs" "choco")) {
+            Write-Log "INFO" "Installing Node.js using Chocolatey..."
+            choco install nodejs -y
+        }
+        else {
+            Write-Log "INFO" "Node.js is already installed, checking version..."
+            $nodeVersion = node --version
+            Write-Log "INFO" "Node.js version: $nodeVersion"
+        }
         
         # Verify installation
         if (Test-Command "node") {
@@ -212,6 +278,11 @@ function Install-NodeJS {
             return $false
         }
     }
+    else {
+        $nodeVersion = node --version
+        Write-Log "INFO" "Node.js is already installed: $nodeVersion"
+    }
+    
     return $true
 }
 
@@ -220,7 +291,24 @@ function Install-PostgreSQL {
     if (-not (Test-Command "psql")) {
         Write-Log "STEP" "Installing PostgreSQL..."
         
-        choco install postgresql -y
+        if (-not (Test-PackageInstalled "postgresql" "choco")) {
+            Write-Log "INFO" "Installing PostgreSQL using Chocolatey..."
+            choco install postgresql -y
+        }
+        else {
+            Write-Log "INFO" "PostgreSQL is already installed, starting service..."
+        }
+        
+        # Start PostgreSQL service
+        try {
+            Start-Service postgresql-x64-14 -ErrorAction Stop
+            Set-Service postgresql-x64-14 -StartupType Automatic
+            Write-Log "SUCCESS" "PostgreSQL service started"
+        }
+        catch {
+            Write-Log "WARN" "Could not start PostgreSQL service automatically"
+            Write-Log "INFO" "Please start PostgreSQL service manually"
+        }
         
         # Verify installation
         if (Test-Command "psql") {
@@ -232,6 +320,11 @@ function Install-PostgreSQL {
             return $false
         }
     }
+    else {
+        $psqlVersion = psql --version
+        Write-Log "INFO" "PostgreSQL is already installed: $psqlVersion"
+    }
+    
     return $true
 }
 
@@ -270,24 +363,39 @@ function Install-Dependencies {
     
     # Install root dependencies
     if (Test-Path "package.json") {
-        Write-Log "INFO" "Installing root dependencies..."
-        npm install
+        if (Test-NpmPackageInstalled "root" ".") {
+            Write-Log "INFO" "Root dependencies are already installed, skipping..."
+        }
+        else {
+            Write-Log "INFO" "Installing root dependencies..."
+            npm install
+        }
     }
     
     # Install backend dependencies
-    if ((Test-Path $BACKEND_DIR) -and (Test-Path "$BACKEND_DIR/package.json")) {
-        Write-Log "INFO" "Installing backend dependencies..."
-        Push-Location $BACKEND_DIR
-        npm install
-        Pop-Location
+    if ((Test-Path $BACKEND_DIR) -and (Test-Path (Join-Path $BACKEND_DIR "package.json"))) {
+        if (Test-NpmPackageInstalled "backend" $BACKEND_DIR) {
+            Write-Log "INFO" "Backend dependencies are already installed, skipping..."
+        }
+        else {
+            Write-Log "INFO" "Installing backend dependencies..."
+            Push-Location $BACKEND_DIR
+            npm install
+            Pop-Location
+        }
     }
     
     # Install frontend dependencies
-    if ((Test-Path $FRONTEND_DIR) -and (Test-Path "$FRONTEND_DIR/package.json")) {
-        Write-Log "INFO" "Installing frontend dependencies..."
-        Push-Location $FRONTEND_DIR
-        npm install
-        Pop-Location
+    if ((Test-Path $FRONTEND_DIR) -and (Test-Path (Join-Path $FRONTEND_DIR "package.json"))) {
+        if (Test-NpmPackageInstalled "frontend" $FRONTEND_DIR) {
+            Write-Log "INFO" "Frontend dependencies are already installed, skipping..."
+        }
+        else {
+            Write-Log "INFO" "Installing frontend dependencies..."
+            Push-Location $FRONTEND_DIR
+            npm install
+            Pop-Location
+        }
     }
     
     Write-Log "SUCCESS" "Dependencies installation completed"
@@ -318,25 +426,24 @@ function Setup-Prisma {
     
     Push-Location $BACKEND_DIR
     
-    try {
+    # Check if Prisma client is already generated
+    $prismaClientPath = Join-Path "node_modules\.prisma\client" "index.js"
+    if ((Test-Path "node_modules\.prisma") -and (Test-Path $prismaClientPath)) {
+        Write-Log "INFO" "Prisma client is already generated, skipping generation..."
+    }
+    else {
         # Generate Prisma client
         Write-Log "INFO" "Generating Prisma client..."
         npx prisma generate
-        
-        # Push database schema
-        Write-Log "INFO" "Pushing database schema..."
-        npx prisma db push
-        
-        Write-Log "SUCCESS" "Prisma setup completed"
-    }
-    catch {
-        Write-Log "ERROR" "Prisma setup failed: $($_.Exception.Message)"
-        Pop-Location
-        return $false
     }
     
+    # Push database schema
+    Write-Log "INFO" "Pushing database schema..."
+    npx prisma db push
+    
     Pop-Location
-    return $true
+    
+    Write-Log "SUCCESS" "Prisma setup completed"
 }
 
 # Function to seed database
@@ -345,21 +452,46 @@ function Seed-Database {
     
     Push-Location $BACKEND_DIR
     
-    try {
+    # Check if database is already seeded by checking for existing data
+    Write-Log "INFO" "Checking if database is already seeded..."
+    $seeded = npx ts-node -e "
+    const { PrismaClient } = require('@prisma/client');
+    const prisma = new PrismaClient();
+    
+    async function checkSeeded() {
+        try {
+            const userCount = await prisma.user.count();
+            const roleCount = await prisma.role.count();
+            const orgCount = await prisma.organization.count();
+            
+            // Consider seeded if we have users, roles, and organizations
+            if (userCount > 0 && roleCount > 0 && orgCount > 0) {
+                console.log('true');
+            } else {
+                console.log('false');
+            }
+        } catch (error) {
+            console.log('false');
+        } finally {
+            await prisma.\$disconnect();
+        }
+    }
+    
+    checkSeeded();
+    "
+    
+    if ($seeded -eq "true") {
+        Write-Log "INFO" "Database is already seeded, skipping..."
+    }
+    else {
         # Run database seed
         Write-Log "INFO" "Running database seed..."
         npx prisma db seed
-        
-        Write-Log "SUCCESS" "Database seeding completed"
-    }
-    catch {
-        Write-Log "ERROR" "Database seeding failed: $($_.Exception.Message)"
-        Pop-Location
-        return $false
     }
     
     Pop-Location
-    return $true
+    
+    Write-Log "SUCCESS" "Database seeding completed"
 }
 
 # Function to create admin user
