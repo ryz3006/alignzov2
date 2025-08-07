@@ -10,6 +10,7 @@ import {
   Res,
   Req,
   Param,
+  Options,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -30,6 +31,14 @@ import { Public } from './decorators/public.decorator';
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  @Options('*')
+  @Public()
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async handleOptions() {
+    // This method handles preflight OPTIONS requests
+    return;
+  }
 
   // Email/password login disabled - only Google authentication is enabled
   // @Post('login')
@@ -74,10 +83,12 @@ export class AuthController {
       });
       
       // Redirect to frontend dashboard
-      res.redirect('http://localhost:3000/dashboard');
+      const frontendUrl = process.env.APP_URL || 'http://localhost:3000';
+      res.redirect(`${frontendUrl}/dashboard`);
     } catch (error) {
       console.error('Google auth callback error:', error);
-      res.redirect('http://localhost:3000/login?error=auth_failed');
+      const frontendUrl = process.env.APP_URL || 'http://localhost:3000';
+      res.redirect(`${frontendUrl}/login?error=auth_failed`);
     }
   }
 
@@ -200,17 +211,5 @@ export class AuthController {
         isActive: ur.isActive,
       })),
     };
-  }
-
-  @Get('me')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get current user information' })
-  @ApiResponse({
-    status: 200,
-    description: 'Current user information retrieved successfully',
-  })
-  async getCurrentUser(@Request() req) {
-    return req.user;
   }
 } 

@@ -16,7 +16,17 @@ async function bootstrap() {
   const logger = app.get(LoggerService);
 
   // Security middleware
-  app.use(helmet());
+  app.use(helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        scriptSrc: ["'self'"],
+        imgSrc: ["'self'", "data:", "https:"],
+      },
+    },
+  }));
   app.use(compression());
   
   // Cookie parsing middleware
@@ -27,9 +37,26 @@ async function bootstrap() {
   app.use(loggingMiddleware.use.bind(loggingMiddleware));
 
   // CORS configuration
+  const corsOrigins = process.env.CORS_ORIGIN 
+    ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
+    : ['http://localhost:3000', 'http://localhost:3002', 'http://10.0.15.110:3000', 'http://10.0.15.110:3001'];
+  
   app.enableCors({
-    origin: [process.env.CORS_ORIGIN || 'http://localhost:3000', 'http://localhost:3002'],
+    origin: corsOrigins,
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: [
+      'Content-Type', 
+      'Authorization', 
+      'X-Requested-With',
+      'Accept',
+      'Origin',
+      'Access-Control-Request-Method',
+      'Access-Control-Request-Headers'
+    ],
+    exposedHeaders: ['Set-Cookie'],
+    preflightContinue: false,
+    optionsSuccessStatus: 204
   });
 
   // Global validation pipe
