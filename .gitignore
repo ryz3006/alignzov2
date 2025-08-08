@@ -377,3 +377,6 @@ dev-overrides/
 
 # Secrets
 configs/firebase/*.json
+
+# Firebase admin credentials (do not commit)
+configs/firebase/*.json
