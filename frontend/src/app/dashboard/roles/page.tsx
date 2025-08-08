@@ -6,7 +6,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/lib/auth-context';
 import { Modal } from '@/components/ui/modal';
 import { RoleForm } from '@/components/forms/role-form';
-import { RolePermissionManager } from '@/components/role-permission-manager';
 import { RolesPageGuard } from '@/components/auth/page-permission-guard';
 import { 
   RolesPermissionGuard, 
@@ -26,7 +25,7 @@ import {
   Users,
   Settings,
   Eye,
-  Key,
+  
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -63,8 +62,7 @@ function RolesPageContent() {
   const [searchTerm, setSearchTerm] = useState('');
   const [levelFilter, setLevelFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [isPermissionManagerOpen, setIsPermissionManagerOpen] = useState(false);
-  const [selectedRoleForPermissions, setSelectedRoleForPermissions] = useState<Role | null>(null);
+  
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
   const { apiCall } = useAuth();
@@ -176,15 +174,7 @@ function RolesPageContent() {
     handleModalClose();
   };
 
-  const handleManagePermissions = (role: Role) => {
-    setSelectedRoleForPermissions(role);
-    setIsPermissionManagerOpen(true);
-  };
-
-  const handlePermissionManagerClose = () => {
-    setIsPermissionManagerOpen(false);
-    setSelectedRoleForPermissions(null);
-  };
+  
 
   return (
     <DashboardLayout>
@@ -394,13 +384,7 @@ function RolesPageContent() {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <div className="flex items-center justify-end space-x-2">
-                              <button 
-                                onClick={() => handleManagePermissions(role)}
-                                className="text-blue-600 hover:text-blue-900"
-                                title="Manage Permissions"
-                              >
-                                <Key className="h-4 w-4" />
-                              </button>
+                              
                               <RolesUpdatePermissionGuard>
                                 <button 
                                   onClick={() => handleEditRole(role)}
@@ -478,20 +462,7 @@ function RolesPageContent() {
         )}
       </Modal>
 
-      {/* Permission Manager Modal */}
-      <Modal
-        isOpen={isPermissionManagerOpen}
-        onClose={handlePermissionManagerClose}
-        title=""
-        size="xl"
-      >
-        {selectedRoleForPermissions && (
-          <RolePermissionManager
-            role={selectedRoleForPermissions}
-            onClose={handlePermissionManagerClose}
-          />
-        )}
-      </Modal>
+      
     </DashboardLayout>
   );
 } 

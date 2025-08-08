@@ -59,6 +59,8 @@ model User {
   ledTeams          Team[]         @relation("TeamLeader")
   workLogs          WorkLog[]
   timeSessions      TimeSession[]
+  // Access levels
+  accessLevels      UserAccessLevel[]
 
   // Notifications and Social
   notifications     Notification[]
@@ -194,6 +196,19 @@ model UserPermission {
 
   @@unique([userId, permissionId])
   @@map("user_permissions")
+}
+
+// Users can have multiple access levels (INDIVIDUAL/TEAM/PROJECT/FULL_ACCESS)
+model UserAccessLevel {
+  id        String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String      @db.Uuid
+  level     AccessLevel
+  createdAt DateTime    @default(now())
+
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, level])
+  @@map("user_access_levels")
 }
 
 // ================================

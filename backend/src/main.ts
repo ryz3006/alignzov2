@@ -15,6 +15,31 @@ async function bootstrap() {
   // Get logger service
   const logger = app.get(LoggerService);
 
+  // CORS configuration - must come before Helmet
+  console.log('CORS_ORIGIN from env:', process.env.CORS_ORIGIN);
+  const corsOrigins = process.env.CORS_ORIGIN 
+    ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
+    : ['http://localhost:3000', 'http://localhost:3002', 'http://10.0.15.110:3000', 'http://10.0.15.110:3001'];
+  console.log('CORS origins:', corsOrigins);
+  
+  app.enableCors({
+    origin: corsOrigins,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: [
+      'Content-Type', 
+      'Authorization', 
+      'X-Requested-With',
+      'Accept',
+      'Origin',
+      'Access-Control-Request-Method',
+      'Access-Control-Request-Headers'
+    ],
+    exposedHeaders: ['Set-Cookie'],
+    preflightContinue: false,
+    optionsSuccessStatus: 204
+  });
+
   // Security middleware
   app.use(helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" },
@@ -37,29 +62,6 @@ async function bootstrap() {
   // Logging middleware
   const loggingMiddleware = app.get(LoggingMiddleware);
   app.use(loggingMiddleware.use.bind(loggingMiddleware));
-
-  // CORS configuration
-  const corsOrigins = process.env.CORS_ORIGIN 
-    ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
-    : ['http://localhost:3000', 'http://localhost:3002', 'http://10.0.15.110:3000', 'http://10.0.15.110:3001'];
-  
-  app.enableCors({
-    origin: corsOrigins,
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: [
-      'Content-Type', 
-      'Authorization', 
-      'X-Requested-With',
-      'Accept',
-      'Origin',
-      'Access-Control-Request-Method',
-      'Access-Control-Request-Headers'
-    ],
-    exposedHeaders: ['Set-Cookie'],
-    preflightContinue: false,
-    optionsSuccessStatus: 204
-  });
 
   // Global validation pipe
   app.useGlobalPipes(

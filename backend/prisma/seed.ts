@@ -68,69 +68,79 @@ async function main() {
 
   console.log('✅ System roles created');
 
-  // Define permissions - Extended to include all resources with CRUD operations
+  // Cleanup legacy permissions resource entries (no UI for managing permissions directly)
+  console.log('🧹 Cleaning up legacy permissions.* records...');
+  const legacyPermissions = await prisma.permission.findMany({ where: { resource: 'permissions' } });
+  if (legacyPermissions.length > 0) {
+    const legacyIds = legacyPermissions.map(p => p.id);
+    await prisma.rolePermission.deleteMany({ where: { permissionId: { in: legacyIds } } });
+    await prisma.userPermission.deleteMany({ where: { permissionId: { in: legacyIds } } });
+    await prisma.permission.deleteMany({ where: { id: { in: legacyIds } } });
+    console.log(`✅ Removed ${legacyIds.length} legacy permissions`);
+  } else {
+    console.log('✅ No legacy permissions found');
+  }
+
+  // Standardized permission manifest (full CRUD for all core resources)
   const permissions = [
-    // User Management Permissions (8 permissions)
+    // User Management (8)
     { name: 'users.create', displayName: 'Create Users', resource: 'users', action: 'create' },
     { name: 'users.read', displayName: 'View Users', resource: 'users', action: 'read' },
     { name: 'users.update', displayName: 'Edit Users', resource: 'users', action: 'update' },
     { name: 'users.delete', displayName: 'Delete Users', resource: 'users', action: 'delete' },
-    { name: 'users.assign_role', displayName: 'Assign Roles to Users', resource: 'users', action: 'assign_role' },
-    { name: 'users.remove_role', displayName: 'Remove Roles from Users', resource: 'users', action: 'remove_role' },
-    { name: 'users.assign_manager', displayName: 'Assign Managers to Users', resource: 'users', action: 'assign_manager' },
-    { name: 'users.remove_manager', displayName: 'Remove Managers from Users', resource: 'users', action: 'remove_manager' },
-    
-    // Role Management Permissions (5 permissions)
+    { name: 'users.assign_role', displayName: 'Assign Roles', resource: 'users', action: 'assign_role' },
+    { name: 'users.remove_role', displayName: 'Remove Roles', resource: 'users', action: 'remove_role' },
+    { name: 'users.assign_manager', displayName: 'Assign Manager', resource: 'users', action: 'assign_manager' },
+    { name: 'users.remove_manager', displayName: 'Remove Manager', resource: 'users', action: 'remove_manager' },
+
+    // Role Management (5)
     { name: 'roles.create', displayName: 'Create Roles', resource: 'roles', action: 'create' },
     { name: 'roles.read', displayName: 'View Roles', resource: 'roles', action: 'read' },
     { name: 'roles.update', displayName: 'Edit Roles', resource: 'roles', action: 'update' },
     { name: 'roles.delete', displayName: 'Delete Roles', resource: 'roles', action: 'delete' },
     { name: 'roles.manage', displayName: 'Manage Role Permissions', resource: 'roles', action: 'manage' },
-    
-    // Permission Management Permissions (5 permissions)
-    { name: 'permissions.create', displayName: 'Create Permissions', resource: 'permissions', action: 'create' },
-    { name: 'permissions.read', displayName: 'View Permissions', resource: 'permissions', action: 'read' },
-    { name: 'permissions.update', displayName: 'Edit Permissions', resource: 'permissions', action: 'update' },
-    { name: 'permissions.delete', displayName: 'Delete Permissions', resource: 'permissions', action: 'delete' },
-    { name: 'permissions.manage', displayName: 'Manage Permission Assignments', resource: 'permissions', action: 'manage' },
 
-    // Organization Management Permissions (4 permissions)
+    // Permission Management (UI-less) → remove CRUD, keep role-level assign/unassign actions
+    { name: 'roles.assign_permission', displayName: 'Assign Permission to Role', resource: 'roles', action: 'assign_permission' },
+    { name: 'roles.unassign_permission', displayName: 'Unassign Permission from Role', resource: 'roles', action: 'unassign_permission' },
+
+    // Organization Management (4)
     { name: 'organizations.create', displayName: 'Create Organizations', resource: 'organizations', action: 'create' },
     { name: 'organizations.read', displayName: 'View Organizations', resource: 'organizations', action: 'read' },
     { name: 'organizations.update', displayName: 'Edit Organizations', resource: 'organizations', action: 'update' },
     { name: 'organizations.delete', displayName: 'Delete Organizations', resource: 'organizations', action: 'delete' },
 
-    // Project Management Permissions (4 permissions)
+    // Project Management (4)
     { name: 'projects.create', displayName: 'Create Projects', resource: 'projects', action: 'create' },
     { name: 'projects.read', displayName: 'View Projects', resource: 'projects', action: 'read' },
     { name: 'projects.update', displayName: 'Edit Projects', resource: 'projects', action: 'update' },
     { name: 'projects.delete', displayName: 'Delete Projects', resource: 'projects', action: 'delete' },
 
-    // Team Management Permissions (4 permissions)
+    // Team Management (4)
     { name: 'teams.create', displayName: 'Create Teams', resource: 'teams', action: 'create' },
     { name: 'teams.read', displayName: 'View Teams', resource: 'teams', action: 'read' },
     { name: 'teams.update', displayName: 'Edit Teams', resource: 'teams', action: 'update' },
     { name: 'teams.delete', displayName: 'Delete Teams', resource: 'teams', action: 'delete' },
 
-    // Time Session Management Permissions (4 permissions)
+    // Time Session Management (4)
     { name: 'time_sessions.create', displayName: 'Create Time Sessions', resource: 'time_sessions', action: 'create' },
     { name: 'time_sessions.read', displayName: 'View Time Sessions', resource: 'time_sessions', action: 'read' },
     { name: 'time_sessions.update', displayName: 'Edit Time Sessions', resource: 'time_sessions', action: 'update' },
     { name: 'time_sessions.delete', displayName: 'Delete Time Sessions', resource: 'time_sessions', action: 'delete' },
 
-    // Work Log Management Permissions (4 permissions)
+    // Work Log Management (4)
     { name: 'work_logs.create', displayName: 'Create Work Logs', resource: 'work_logs', action: 'create' },
     { name: 'work_logs.read', displayName: 'View Work Logs', resource: 'work_logs', action: 'read' },
     { name: 'work_logs.update', displayName: 'Edit Work Logs', resource: 'work_logs', action: 'update' },
     { name: 'work_logs.delete', displayName: 'Delete Work Logs', resource: 'work_logs', action: 'delete' },
 
-    // Analytics Permissions (4 permissions)
+    // Analytics (CRUD placeholder)
     { name: 'analytics.create', displayName: 'Create Analytics', resource: 'analytics', action: 'create' },
     { name: 'analytics.read', displayName: 'View Analytics', resource: 'analytics', action: 'read' },
     { name: 'analytics.update', displayName: 'Edit Analytics', resource: 'analytics', action: 'update' },
     { name: 'analytics.delete', displayName: 'Delete Analytics', resource: 'analytics', action: 'delete' },
-    
-    // Settings Management Permissions (4 permissions)
+
+    // Settings (CRUD placeholder)
     { name: 'settings.create', displayName: 'Create Settings', resource: 'settings', action: 'create' },
     { name: 'settings.read', displayName: 'View Settings', resource: 'settings', action: 'read' },
     { name: 'settings.update', displayName: 'Edit Settings', resource: 'settings', action: 'update' },
@@ -175,6 +185,26 @@ async function main() {
   }
 
   console.log('✅ Permissions assigned to SUPER_ADMIN role');
+
+  // Ensure ADMIN has read access to core resources by default
+  const defaultAdminPermissions = permissions.filter(p =>
+    [
+      'users.read','projects.read','teams.read','time_sessions.read','work_logs.read','settings.read','analytics.read','organizations.read','roles.read','permissions.read'
+    ].includes(p.name)
+  );
+  for (const permission of defaultAdminPermissions) {
+    const perm = await prisma.permission.findUnique({ where: { name: permission.name } });
+    if (perm) {
+      await prisma.rolePermission.upsert({
+        where: {
+          roleId_permissionId: { roleId: adminRole.id, permissionId: perm.id },
+        },
+        update: {},
+        create: { roleId: adminRole.id, permissionId: perm.id },
+      });
+    }
+  }
+  console.log('✅ Core read permissions assigned to ADMIN role');
 
   // Create a default organization first
   console.log('🏢 Creating default organization...');
@@ -280,6 +310,19 @@ async function main() {
   });
 
   console.log('✅ ADMIN role assigned to operations user');
+
+  // Seed access levels: SUPER_ADMIN/ADMIN get FULL_ACCESS by default
+  await prisma.userAccessLevel.upsert({
+    where: { userId_level: { userId: superAdminUser.id, level: 'FULL_ACCESS' } as any },
+    update: {},
+    create: { userId: superAdminUser.id, level: 'FULL_ACCESS' as any },
+  });
+  await prisma.userAccessLevel.upsert({
+    where: { userId_level: { userId: operationsUser.id, level: 'FULL_ACCESS' } as any },
+    update: {},
+    create: { userId: operationsUser.id, level: 'FULL_ACCESS' as any },
+  });
+  console.log('✅ Seeded FULL_ACCESS for admin users');
 
   // Assign SUPER_ADMIN role to the user
   console.log('🎭 Assigning SUPER_ADMIN role to user...');
@@ -463,7 +506,7 @@ async function main() {
   console.log('🎉 Database seeding completed successfully!');
   console.log('');
   console.log('📊 Summary:');
-  console.log(`   - Created ${permissions.length} system permissions (standardized)`);
+  console.log(`   - Created ${permissions.length} system permissions`);
   console.log(`   - Created 4 system roles (SUPER_ADMIN, ADMIN, MANAGER, EMPLOYEE)`);
   console.log(`   - Created super admin user: riyas.siddikk@6dtech.co.in`);
   console.log(`   - Created operations user: operations@6dtech.co.in`);
@@ -471,25 +514,6 @@ async function main() {
   console.log(`   - Created 2 sample projects`);
   console.log(`   - Created default development team`);
   console.log(`   - Created ${systemSettings.length} system settings`);
-  console.log('');
-  console.log('🔑 User Credentials:');
-  console.log('   Super Admin: riyas.siddikk@6dtech.co.in (SUPER_ADMIN role)');
-  console.log('   Operations: operations@6dtech.co.in (ADMIN role)');
-  console.log('');
-  console.log('🚀 You can now log in using Google OAuth with these emails!');
-  console.log('');
-  console.log('🔐 Permission System:');
-  console.log('   - User Management: 8 permissions');
-  console.log('   - Role Management: 5 permissions');
-  console.log('   - Permission Management: 5 permissions');
-  console.log('   - Organization Management: 4 permissions');
-  console.log('   - Project Management: 4 permissions');
-  console.log('   - Team Management: 4 permissions');
-  console.log('   - Time Session Management: 4 permissions');
-  console.log('   - Work Log Management: 4 permissions');
-  console.log('   - Analytics Management: 4 permissions');
-  console.log('   - Settings Management: 4 permissions');
-  console.log('   - Total: 46 comprehensive permissions');
 }
 
 main()

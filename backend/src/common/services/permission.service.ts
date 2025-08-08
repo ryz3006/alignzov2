@@ -171,13 +171,85 @@ export class PermissionService {
   async canUserAccessUser(requestingUserId: string, targetUserId: string, action: string): Promise<boolean> {
     // Check if user has the specific action permission
     const hasActionPermission = await this.checkUserPermission(requestingUserId, 'users', action);
-    
-    if (!hasActionPermission) {
-      return false;
+    if (!hasActionPermission) return false;
+
+    // Apply access level scoping
+    const scope = await this.getUserAccessScope(requestingUserId);
+    if (scope.fullAccess) return true;
+
+    // INDIVIDUAL: can access self
+    if (scope.individual && requestingUserId === targetUserId) return true;
+
+    // TEAM: can access users who share any active team
+    if (scope.team) {
+      const sharedTeam = await this.prisma.teamMember.findFirst({
+        where: {
+          isActive: true,
+          userId: requestingUserId,
+          team: {
+            members: {
+              some: { userId: targetUserId, isActive: true },
+            },
+          },
+        },
+        select: { id: true },
+      });
+      if (sharedTeam) return true;
     }
 
-    // Additional logic can be added here for organization-based access control
-    // For now, return true if they have the action permission
-    return true;
+    // PROJECT: can access users who share any active project
+    if (scope.project) {
+      const sharedProject = await this.prisma.projectMember.findFirst({
+        where: {
+          isActive: true,
+          userId: requestingUserId,
+          project: {
+            members: {
+              some: { userId: targetUserId, isActive: true },
+            },
+          },
+        },
+        select: { id: true },
+      });
+      if (sharedProject) return true;
+    }
+
+    // Otherwise, denied
+    return false;
+  }
+
+  // Compute the requester's access scope from roles and explicit user access levels
+  private async getUserAccessScope(userId: string): Promise<{
+    fullAccess: boolean;
+    project: boolean;
+    team: boolean;
+    individual: boolean;
+  }> {
+    // Admin roles implicitly grant FULL_ACCESS
+    const adminRole = await this.prisma.userRole.findFirst({
+      where: {
+        userId,
+        isActive: true,
+        role: { name: { in: ['SUPER_ADMIN', 'ADMIN'] }, isActive: true },
+      },
+    });
+
+    if (adminRole) {
+      return { fullAccess: true, project: true, team: true, individual: true };
+    }
+
+    const levels = await this.prisma.userAccessLevel.findMany({
+      where: { userId },
+      select: { level: true },
+    });
+
+    const levelSet = new Set(levels.map((l) => l.level));
+
+    return {
+      fullAccess: levelSet.has('FULL_ACCESS'),
+      project: levelSet.has('PROJECT'),
+      team: levelSet.has('TEAM'),
+      individual: levelSet.has('INDIVIDUAL') || levels.length === 0, // default to individual if none set
+    };
   }
 } 

@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Modal } from '@/components/ui/modal';
 import toast from 'react-hot-toast';
-import { User, Users, Building, Briefcase, X } from 'lucide-react';
+import { User } from 'lucide-react';
 
 const userSchema = z.object({
   firstName: z.string().min(1, 'First name is required').max(50, 'First name must be less than 50 characters'),
@@ -20,11 +20,6 @@ const userSchema = z.object({
   department: z.string().optional(),
   phone: z.string().optional(),
   managerId: z.string().optional(), // Organizational reporting manager
-  teamIds: z.array(z.string()).optional(),
-  projectAssignments: z.array(z.object({
-    projectId: z.string(),
-    reportingToId: z.string().optional(), // Project-specific reporting manager
-  })).optional(),
 });
 
 type UserFormData = z.infer<typeof userSchema>;
@@ -67,18 +62,7 @@ interface User {
   }>;
 }
 
-interface Team {
-  id: string;
-  name: string;
-  description?: string;
-}
-
-interface Project {
-  id: string;
-  name: string;
-  code: string;
-  status: string;
-}
+// Team and Project assignments are managed via Team/Project modals, not here
 
 interface UserFormProps {
   user?: User | null;
@@ -89,12 +73,6 @@ interface UserFormProps {
 }
 
 export function UserForm({ user, isOpen, onClose, onSuccess, readOnly = false }: UserFormProps) {
-  const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
-  const [projectAssignments, setProjectAssignments] = useState<Array<{
-    projectId: string;
-    reportingToId?: string;
-    role?: string;
-  }>>([]);
   const { apiCall } = useAuth();
   const queryClient = useQueryClient();
 
@@ -115,8 +93,6 @@ export function UserForm({ user, isOpen, onClose, onSuccess, readOnly = false }:
       department: '',
       phone: '',
       managerId: '',
-      teamIds: [],
-      projectAssignments: [],
     },
   });
 
@@ -133,31 +109,7 @@ export function UserForm({ user, isOpen, onClose, onSuccess, readOnly = false }:
     },
   });
 
-  // Fetch teams for assignment
-  const { data: teams = [] } = useQuery({
-    queryKey: ['teams'],
-    queryFn: async () => {
-      const response = await apiCall('/api/teams');
-      if (!response.ok) {
-        throw new Error('Failed to fetch teams');
-      }
-      const data = await response.json();
-      return data || [];
-    },
-  });
-
-  // Fetch projects for assignment
-  const { data: projects = [] } = useQuery({
-    queryKey: ['projects'],
-    queryFn: async () => {
-      const response = await apiCall('/api/projects');
-      if (!response.ok) {
-        throw new Error('Failed to fetch projects');
-      }
-      const data = await response.json();
-      return data || [];
-    },
-  });
+  // Team and Project lists are not needed here
 
   // Create/Update user mutation
   const createUserMutation = useMutation({
@@ -221,74 +173,19 @@ export function UserForm({ user, isOpen, onClose, onSuccess, readOnly = false }:
       setValue('phone', user.phone || '');
       setValue('managerId', user.managerId || '');
       
-      // Handle teamMembers safely
-      if (user.teamMembers && Array.isArray(user.teamMembers)) {
-        setSelectedTeams(user.teamMembers.map(tm => tm.team.id));
-      } else {
-        setSelectedTeams([]);
-      }
-      
-      // Handle projectMembers safely
-      if (user.projectMembers && Array.isArray(user.projectMembers)) {
-        const projectAssignmentsData = user.projectMembers.map(pm => ({
-          projectId: pm.project.id,
-          reportingToId: pm.reportingToId,
-          role: pm.role,
-        }));
-        
-        setProjectAssignments(projectAssignmentsData);
-      } else {
-        setProjectAssignments([]);
-      }
     } else {
       reset();
-      setSelectedTeams([]);
-      setProjectAssignments([]);
     }
   }, [user, setValue, reset]);
 
   const onSubmit = (data: UserFormData) => {
-    const formData = {
-      ...data,
-      teamIds: selectedTeams,
-      projectAssignments,
-    };
-
+    const formData = { ...data };
     console.log('UserForm onSubmit - formData being sent:', formData);
-    console.log('UserForm onSubmit - projectAssignments:', projectAssignments);
-
     if (user) {
       updateUserMutation.mutate(formData);
     } else {
       createUserMutation.mutate(formData);
     }
-  };
-
-  const handleTeamToggle = (teamId: string) => {
-    setSelectedTeams(prev => 
-      prev.includes(teamId) 
-        ? prev.filter(id => id !== teamId)
-        : [...prev, teamId]
-    );
-  };
-
-  const handleProjectAssignment = (projectId: string, reportingToId?: string, role?: string) => {
-    setProjectAssignments(prev => {
-      const existing = prev.find(p => p.projectId === projectId);
-      if (existing) {
-        return prev.map(p => 
-          p.projectId === projectId 
-            ? { ...p, reportingToId, role: role || p.role }
-            : p
-        );
-      } else {
-        return [...prev, { projectId, reportingToId, role: role || 'member' }];
-      }
-    });
-  };
-
-  const removeProjectAssignment = (projectId: string) => {
-    setProjectAssignments(prev => prev.filter(p => p.projectId !== projectId));
   };
 
   const watchedManagerId = watch('managerId');
@@ -416,195 +313,7 @@ export function UserForm({ user, isOpen, onClose, onSuccess, readOnly = false }:
           </div>
         </div>
 
-        {/* Team Assignments */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Team Memberships
-          </label>
-          
-          {/* Selected Teams */}
-          {selectedTeams.length > 0 && (
-            <div className="mb-4">
-              <h4 className="text-sm font-medium text-gray-700 mb-2">Assigned Teams:</h4>
-              <div className="flex flex-wrap gap-2">
-                {selectedTeams.map(teamId => {
-                  const team = teams.find((t: Team) => t.id === teamId);
-                  return team ? (
-                    <div
-                      key={teamId}
-                      className="flex items-center gap-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm"
-                    >
-                      <Users className="h-4 w-4" />
-                      <span>{team.name}</span>
-                      <button
-                        type="button"
-                        onClick={() => handleTeamToggle(teamId)}
-                        className="text-blue-600 hover:text-blue-800"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ) : null;
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Available Teams */}
-          <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-md">
-            {teams.map((team: Team) => (
-              <div
-                key={team.id}
-                className={`flex items-center justify-between p-3 border-b border-gray-100 last:border-b-0 hover:bg-gray-50 ${
-                  selectedTeams.includes(team.id) ? 'bg-blue-50' : ''
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-blue-200 rounded-full flex items-center justify-center">
-                    <Users className="h-4 w-4 text-blue-600" />
-                  </div>
-                  <div>
-                    <div className="font-medium text-gray-900">{team.name}</div>
-                    {team.description && (
-                      <div className="text-xs text-gray-400">{team.description}</div>
-                    )}
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleTeamToggle(team.id)}
-                  className={`px-3 py-1 rounded-md text-sm font-medium ${
-                    selectedTeams.includes(team.id)
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                  disabled={readOnly}
-                >
-                  {selectedTeams.includes(team.id) ? 'Remove' : 'Add'}
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Project Assignments */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Project Assignments
-          </label>
-          
-          {/* Current Project Assignments */}
-          {projectAssignments.length > 0 && (
-            <div className="mb-4">
-              <h4 className="text-sm font-medium text-gray-700 mb-2">Current Assignments:</h4>
-              <div className="space-y-2">
-                {projectAssignments.map(assignment => {
-                  const project = projects.find((p: Project) => p.id === assignment.projectId);
-                  const reportingTo = users.find((u: User) => u.id === assignment.reportingToId);
-                  
-                  return project ? (
-                    <div
-                      key={assignment.projectId}
-                      className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-md"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-green-200 rounded-full flex items-center justify-center">
-                          <Briefcase className="h-4 w-4 text-green-600" />
-                        </div>
-                        <div>
-                          <div className="font-medium text-gray-900">{project.name} ({project.code})</div>
-                          <div className="text-sm text-gray-500">
-                            Role: {assignment.role || 'member'}
-                            {reportingTo && ` • Reports to: ${reportingTo.displayName}`}
-                          </div>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => removeProjectAssignment(assignment.projectId)}
-                        className="text-red-600 hover:text-red-800"
-                        disabled={readOnly}
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                  ) : null;
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Add New Project Assignment */}
-          <div className="border border-gray-200 rounded-md p-4">
-            <h4 className="text-sm font-medium text-gray-700 mb-3">Add Project Assignment:</h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Project</label>
-                <select
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-                  onChange={(e) => {
-                    const projectId = e.target.value;
-                    if (projectId && !projectAssignments.find(p => p.projectId === projectId)) {
-                      handleProjectAssignment(projectId);
-                    }
-                  }}
-                  disabled={readOnly}
-                >
-                  <option value="">Select project</option>
-                  {projects
-                    .filter((p: Project) => !projectAssignments.find(pa => pa.projectId === p.id))
-                    .map((project: Project) => (
-                      <option key={project.id} value={project.id}>
-                        {project.name} ({project.code})
-                      </option>
-                    ))}
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Role</label>
-                <select
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-                  onChange={(e) => {
-                    const projectId = projectAssignments[projectAssignments.length - 1]?.projectId;
-                    if (projectId) {
-                      handleProjectAssignment(projectId, undefined, e.target.value);
-                    }
-                  }}
-                  disabled={readOnly}
-                >
-                  <option value="member">Member</option>
-                  <option value="manager">Manager</option>
-                  <option value="owner">Owner</option>
-                  <option value="viewer">Viewer</option>
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Reports to (Project)</label>
-                <select
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-                  onChange={(e) => {
-                    const projectId = projectAssignments[projectAssignments.length - 1]?.projectId;
-                    if (projectId) {
-                      handleProjectAssignment(projectId, e.target.value || undefined);
-                    }
-                  }}
-                  disabled={readOnly}
-                >
-                  <option value="">Select reporting manager</option>
-                  {users
-                    .filter((u: User) => u.id !== user?.id)
-                    .map((u: User) => (
-                      <option key={u.id} value={u.id}>
-                        {u.displayName}
-                      </option>
-                    ))}
-                </select>
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* Team and Project assignments are managed in their respective modals */}
 
         {/* Form Actions */}
         <div className="flex justify-end gap-3 pt-4 border-t">

@@ -57,21 +57,27 @@ export class PermissionGuard implements CanActivate {
   }
 
   private async checkUserPermission(userId: string, resource: string, action: string): Promise<boolean> {
+    // Admin roles have implicit allow
+    const isAdmin = await this.prisma.userRole.findFirst({
+      where: {
+        userId,
+        isActive: true,
+        role: { name: { in: ['SUPER_ADMIN', 'ADMIN'] }, isActive: true },
+      },
+      select: { id: true },
+    });
+    if (isAdmin) return true;
+
     // Check direct user permissions
     const userPermission = await this.prisma.userPermission.findFirst({
       where: {
         userId,
-        permission: {
-          resource,
-          action,
-        },
         isActive: true,
+        permission: { resource, action },
       },
+      select: { id: true },
     });
-
-    if (userPermission) {
-      return true;
-    }
+    if (userPermission) return true;
 
     // Check role-based permissions
     const rolePermission = await this.prisma.userRole.findFirst({
@@ -80,18 +86,11 @@ export class PermissionGuard implements CanActivate {
         isActive: true,
         role: {
           isActive: true,
-          rolePermissions: {
-            some: {
-              permission: {
-                resource,
-                action,
-              },
-            },
-          },
+          rolePermissions: { some: { permission: { resource, action } } },
         },
       },
+      select: { id: true },
     });
-
     return !!rolePermission;
   }
 } 

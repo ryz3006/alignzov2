@@ -19,18 +19,17 @@ import { OrganizationsService } from './organizations.service';
 import { CreateOrganizationDto } from './dto/create-organization.dto';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
+import { PermissionGuard, RequirePermissions } from '../common/guards/permission.guard';
 
 @ApiTags('Organizations')
 @Controller('organizations')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, PermissionGuard)
 @ApiBearerAuth()
 export class OrganizationsController {
   constructor(private readonly organizationsService: OrganizationsService) {}
 
   @Post()
-  @Roles('SUPER_ADMIN')
+  @RequirePermissions('organizations', 'create')
   @ApiOperation({ summary: 'Create a new organization' })
   @ApiResponse({
     status: 201,
@@ -57,7 +56,7 @@ export class OrganizationsController {
   }
 
   @Get()
-  @Roles('SUPER_ADMIN', 'ADMIN')
+  @RequirePermissions('organizations', 'read')
   @ApiOperation({ summary: 'Get all organizations' })
   @ApiResponse({
     status: 200,
@@ -76,7 +75,7 @@ export class OrganizationsController {
   }
 
   @Get(':id')
-  @Roles('SUPER_ADMIN', 'ADMIN')
+  @RequirePermissions('organizations', 'read')
   @ApiOperation({ summary: 'Get organization by ID' })
   @ApiResponse({
     status: 200,
@@ -99,7 +98,7 @@ export class OrganizationsController {
   }
 
   @Patch(':id')
-  @Roles('SUPER_ADMIN')
+  @RequirePermissions('organizations', 'update')
   @ApiOperation({ summary: 'Update organization' })
   @ApiResponse({
     status: 200,
@@ -133,7 +132,7 @@ export class OrganizationsController {
   }
 
   @Delete(':id')
-  @Roles('SUPER_ADMIN')
+  @RequirePermissions('organizations', 'delete')
   @ApiOperation({ summary: 'Delete organization' })
   @ApiResponse({
     status: 200,

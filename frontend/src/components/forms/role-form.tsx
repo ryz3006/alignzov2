@@ -71,7 +71,7 @@ const RESOURCE_GROUPS = {
   'Project Management': ['projects'],
   'Time Tracking': ['time_sessions'],
   'Team Management': ['teams'],
-  'System Administration': ['system', 'organizations'],
+  'System Administration': ['organizations', 'settings', 'analytics'],
 };
 
 const ACTION_COLORS = {
@@ -87,7 +87,7 @@ const ACTION_COLORS = {
 const RESOURCE_COLORS = {
   users: 'bg-blue-100 text-blue-800',
   roles: 'bg-purple-100 text-purple-800',
-  permissions: 'bg-indigo-100 text-indigo-800',
+  // permissions resource is not used in UI anymore
   projects: 'bg-green-100 text-green-800',
   time_sessions: 'bg-orange-100 text-orange-800',
   teams: 'bg-pink-100 text-pink-800',
@@ -304,6 +304,9 @@ export function RoleForm({ role, onSuccess, onCancel }: RoleFormProps) {
   };
 
   const filteredPermissions = permissions.filter(permission => {
+    // Hide permissions resource since there is no UI to manage it
+    if (permission.resource === 'permissions') return false;
+
     const matchesSearch = (permission.displayName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
                          (permission.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
                          (permission.resource?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
@@ -330,8 +333,10 @@ export function RoleForm({ role, onSuccess, onCancel }: RoleFormProps) {
   const isSubmitting = createRoleMutation.isPending || updateRoleMutation.isPending;
 
   // Get unique resources and actions for filters
-  const resources = Array.from(new Set(permissions.map(p => p.resource))).sort() as string[];
-  const actions = Array.from(new Set(permissions.map(p => p.action))).sort() as string[];
+  const resources = Array.from(new Set(filteredPermissions.map(p => p.resource)))
+    .filter(r => r !== 'permissions')
+    .sort() as string[];
+  const actions = Array.from(new Set(filteredPermissions.map(p => p.action))).sort() as string[];
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">

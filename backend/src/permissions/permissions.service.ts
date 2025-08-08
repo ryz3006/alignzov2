@@ -26,7 +26,12 @@ export class PermissionsService {
 
   async findAll(resource?: string) {
     return this.prisma.permission.findMany({
-      where: resource ? { resource } : undefined,
+      where: {
+        AND: [
+          resource ? { resource } : {},
+          { resource: { not: 'permissions' } },
+        ],
+      },
       orderBy: [
         { resource: 'asc' },
         { action: 'asc' },
@@ -108,6 +113,7 @@ export class PermissionsService {
     const resources = await this.prisma.permission.findMany({
       select: { resource: true },
       distinct: ['resource'],
+      where: { resource: { not: 'permissions' } },
       orderBy: { resource: 'asc' },
     });
 

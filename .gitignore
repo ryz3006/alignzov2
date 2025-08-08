@@ -10,9 +10,6 @@
 .env.production.local
 .envrc
 
-# Firebase service account keys (CRITICAL - Never commit)
-configs/firebase/*.json
-!configs/firebase/README.md
 
 # Database credentials and backups
 *.sql
@@ -290,10 +287,7 @@ id_rsa.pub
 # THIRD-PARTY INTEGRATIONS
 # ================================
 # API keys and secrets (patterns)
-*secret*
-*credential*
-*token*
-*apikey*
+
 
 # JIRA/Confluence
 atlassian-ide-plugin.xml
@@ -372,8 +366,6 @@ imports/
 backups/
 
 # Generated reports
-reports/
-analytics/
 
 # Local development overrides
 local-config/

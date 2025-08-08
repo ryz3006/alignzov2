@@ -127,22 +127,63 @@ export class WorkLogsService {
 
     const skip = (page - 1) * limit;
 
-    // Build where clause
+    // Build where clause with access level scoping
     const where: any = {};
 
-    // If not admin, only show user's own logs or logs from projects they have access to
-    if (!filterUserId) {
-      const userProjects = await this.prisma.projectMember.findMany({
+    // Determine requester's access scope
+    const isAdmin = await this.prisma.userRole.findFirst({
+      where: {
+        userId,
+        isActive: true,
+        role: { name: { in: ['SUPER_ADMIN', 'ADMIN'] }, isActive: true },
+      },
+      select: { id: true },
+    });
+
+    if (!isAdmin) {
+      const accessLevels = await this.prisma.userAccessLevel.findMany({
         where: { userId },
-        select: { projectId: true },
+        select: { level: true },
       });
-      
-      where.OR = [
-        { userId },
-        { projectId: { in: userProjects.map(p => p.projectId) } },
-      ];
-    } else {
-      where.userId = filterUserId;
+      const levelSet = new Set(accessLevels.map((l) => l.level));
+
+      const clauses: any[] = [];
+      // Individual scope always applies
+      clauses.push({ userId });
+
+      // Team scope
+      if (levelSet.has('TEAM')) {
+        const teamProjectIds = await this.prisma.projectTeam.findMany({
+          where: {
+            isActive: true,
+            team: {
+              members: { some: { userId, isActive: true } },
+            },
+          },
+          select: { projectId: true },
+        });
+        if (teamProjectIds.length > 0) {
+          clauses.push({ projectId: { in: teamProjectIds.map((t) => t.projectId) } });
+        }
+      }
+
+      // Project scope
+      if (levelSet.has('PROJECT')) {
+        const projectIds = await this.prisma.projectMember.findMany({
+          where: { userId, isActive: true },
+          select: { projectId: true },
+        });
+        if (projectIds.length > 0) {
+          clauses.push({ projectId: { in: projectIds.map((p) => p.projectId) } });
+        }
+      }
+
+      // Organization scope (FULL_ACCESS)
+      if (levelSet.has('FULL_ACCESS')) {
+        // no where restriction
+      } else {
+        where.OR = clauses;
+      }
     }
 
     if (projectId) {
@@ -312,17 +353,44 @@ export class WorkLogsService {
       throw new NotFoundException('Work log not found');
     }
 
-    // Check if user has access to this work log
+    // Check if user has access to this work log via access levels
     if (workLog.userId !== userId) {
-      const hasProjectAccess = await this.prisma.projectMember.findFirst({
+      // Admin roles bypass
+      const isAdmin = await this.prisma.userRole.findFirst({
         where: {
-          projectId: workLog.projectId,
           userId,
+          isActive: true,
+          role: { name: { in: ['SUPER_ADMIN', 'ADMIN'] }, isActive: true },
         },
       });
+      if (!isAdmin) {
+        const levels = await this.prisma.userAccessLevel.findMany({ where: { userId }, select: { level: true } });
+        const levelSet = new Set(levels.map((l) => l.level));
 
-      if (!hasProjectAccess) {
-        throw new BadRequestException('You do not have access to this work log');
+        let allowed = false;
+        // Team scope
+        if (levelSet.has('TEAM')) {
+          const sharedTeam = await this.prisma.teamMember.findFirst({
+            where: {
+              isActive: true,
+              userId,
+              team: {
+                projects: { some: { projectId: workLog.projectId, isActive: true } },
+              },
+            },
+          });
+          if (sharedTeam) allowed = true;
+        }
+        // Project scope
+        if (!allowed && levelSet.has('PROJECT')) {
+          const projectMember = await this.prisma.projectMember.findFirst({
+            where: { userId, projectId: workLog.projectId, isActive: true },
+          });
+          if (projectMember) allowed = true;
+        }
+        if (!allowed) {
+          throw new BadRequestException('You do not have access to this work log');
+        }
       }
     }
 

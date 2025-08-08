@@ -52,7 +52,7 @@ export class RolesController {
   }
 
   @Post(':id/permissions')
-  @RequirePermissions('roles', 'manage')
+  @RequirePermissions('roles', 'assign_permission')
   assignPermissions(
     @Param('id') id: string,
     @Body() assignPermissionsDto: AssignPermissionsDto,

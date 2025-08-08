@@ -21,18 +21,17 @@ import { TeamsService } from './teams.service';
 import { CreateTeamDto } from './dto/create-team.dto';
 import { UpdateTeamDto } from './dto/update-team.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
+import { PermissionGuard, RequirePermissions } from '../common/guards/permission.guard';
 
 @ApiTags('Teams')
 @Controller('teams')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, PermissionGuard)
 @ApiBearerAuth()
 export class TeamsController {
   constructor(private readonly teamsService: TeamsService) {}
 
   @Post()
-  @Roles('SUPER_ADMIN', 'ADMIN')
+  @RequirePermissions('teams', 'create')
   @ApiOperation({ summary: 'Create a new team' })
   @ApiResponse({
     status: 201,
@@ -63,7 +62,8 @@ export class TeamsController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get all teams (role-based access)' })
+  @RequirePermissions('teams', 'read')
+  @ApiOperation({ summary: 'Get all teams (permission-based access)' })
   @ApiResponse({
     status: 200,
     description: 'Teams retrieved successfully',
@@ -77,6 +77,7 @@ export class TeamsController {
   }
 
   @Get(':id')
+  @RequirePermissions('teams', 'read')
   @ApiOperation({ summary: 'Get team by ID' })
   @ApiResponse({
     status: 200,
@@ -99,7 +100,7 @@ export class TeamsController {
   }
 
   @Patch(':id')
-  @Roles('SUPER_ADMIN', 'ADMIN')
+  @RequirePermissions('teams', 'update')
   @ApiOperation({ summary: 'Update team' })
   @ApiResponse({
     status: 200,
@@ -134,7 +135,7 @@ export class TeamsController {
   }
 
   @Delete(':id')
-  @Roles('SUPER_ADMIN', 'ADMIN')
+  @RequirePermissions('teams', 'delete')
   @ApiOperation({ summary: 'Delete team' })
   @ApiResponse({
     status: 200,
@@ -161,7 +162,7 @@ export class TeamsController {
   }
 
   @Post(':id/members/:userId')
-  @Roles('SUPER_ADMIN', 'ADMIN')
+  @RequirePermissions('teams', 'update')
   @ApiOperation({ summary: 'Add member to team' })
   @ApiResponse({
     status: 201,
@@ -192,7 +193,7 @@ export class TeamsController {
   }
 
   @Delete(':id/members/:userId')
-  @Roles('SUPER_ADMIN', 'ADMIN')
+  @RequirePermissions('teams', 'update')
   @ApiOperation({ summary: 'Remove member from team' })
   @ApiResponse({
     status: 200,
