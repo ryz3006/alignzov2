@@ -134,12 +134,13 @@ function UsersPageContent() {
   });
 
   // Fetch roles
-  const { data: roles = [] } = useQuery({
+  const { data: roles = [] } = useQuery<Role[]>({
     queryKey: ['roles'],
     queryFn: async () => {
       const response = await apiCall('/api/roles');
+      if (!response.ok) return [] as Role[];
       const data = await response.json();
-      return data || [];
+      return Array.isArray(data) ? (data as Role[]) : [];
     },
   });
 

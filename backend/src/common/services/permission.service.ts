@@ -292,11 +292,16 @@ export class PermissionService {
 
     const levelSet = new Set(levels.map((l) => l.level));
 
+    const fullAccess = levelSet.has('FULL_ACCESS');
+    const project = levelSet.has('PROJECT');
+    const team = levelSet.has('TEAM') || project; // PROJECT implies TEAM visibility as well
+
     return {
-      fullAccess: levelSet.has('FULL_ACCESS'),
-      project: levelSet.has('PROJECT'),
-      team: levelSet.has('TEAM'),
-      individual: levelSet.has('INDIVIDUAL') || levels.length === 0, // default to individual if none set
+      fullAccess,
+      project,
+      team,
+      // Always include individual visibility so users can see their own data
+      individual: true,
     };
   }
 } 
