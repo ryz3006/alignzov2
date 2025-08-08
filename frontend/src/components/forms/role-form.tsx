@@ -143,17 +143,39 @@ export function RoleForm({ role, onSuccess, onCancel }: RoleFormProps) {
     enabled: !!role?.id,
   });
 
-  useEffect(() => {
-    if (role) {
-      setFormData({
-        name: role.name,
-        displayName: role.displayName,
-        description: role.description || '',
-        level: role.level,
-        isActive: role.isActive,
-        permissions: rolePermissions.map(p => p.id),
-      });
+  const arraysEqual = (a: string[], b: string[]) => {
+    if (a.length !== b.length) return false;
+    const as = [...a].sort();
+    const bs = [...b].sort();
+    for (let i = 0; i < as.length; i++) {
+      if (as[i] !== bs[i]) return false;
     }
+    return true;
+  };
+
+  const isSameFormData = (prev: FormData, next: FormData) => {
+    return (
+      prev.name === next.name &&
+      prev.displayName === next.displayName &&
+      prev.description === next.description &&
+      prev.level === next.level &&
+      prev.isActive === next.isActive &&
+      arraysEqual(prev.permissions, next.permissions)
+    );
+  };
+
+  useEffect(() => {
+    if (!role) return;
+    const nextData: FormData = {
+      name: role.name,
+      displayName: role.displayName,
+      description: role.description || '',
+      level: role.level,
+      isActive: role.isActive,
+      permissions: (rolePermissions || []).map(p => p.id),
+    };
+
+    setFormData(prev => (isSameFormData(prev, nextData) ? prev : nextData));
   }, [role, rolePermissions]);
 
   const validateForm = (): boolean => {
