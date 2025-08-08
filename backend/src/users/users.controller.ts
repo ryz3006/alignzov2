@@ -66,7 +66,15 @@ export class UsersController {
     description: 'Users retrieved successfully',
   })
   async findAll(@Query('organizationId') organizationId?: string, @Request() req?: any) {
-    return this.usersService.findAll(organizationId, req.user.id);
+    const users = await this.usersService.findAll(organizationId, req.user.id);
+
+    // Page-specific guard: if not FULL_ACCESS/admin, show only self and subordinates
+    const scope = await this.permissionService.getUserAccessScope(req.user.id);
+    if (scope.fullAccess) return users;
+
+    const subs = await this.usersService.getSubordinates(req.user.id);
+    const allowedIds = new Set<string>([req.user.id, ...subs.map((s: any) => s.id)]);
+    return users.filter((u: any) => allowedIds.has(u.id));
   }
 
   @Get('search')

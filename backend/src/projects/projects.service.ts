@@ -115,7 +115,7 @@ export class ProjectsService {
 
     let projects;
 
-    if (userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' || scope.fullAccess) {
+    if (userRole === 'SUPER_ADMIN' || userRole === 'ADMIN') {
       // Admins and FULL_ACCESS users can see all projects within their organization
       projects = await this.prisma.project.findMany({
         where: {
