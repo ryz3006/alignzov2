@@ -374,3 +374,6 @@ dev-overrides/
 # Alignment-specific temp files
 .alignzo-cache/
 .alignzo-temp/
+
+# Secrets
+configs/firebase/*.json
