@@ -1,6 +1,39 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, User, Role } from '@prisma/client';
 
 const prisma = new PrismaClient();
+
+async function findOrCreateSuperAdminRole(): Promise<Role> {
+  let superAdminRole = await prisma.role.findFirst({
+    where: { name: 'SUPER_ADMIN' },
+  });
+
+  if (!superAdminRole) {
+    console.log('SUPER_ADMIN role not found. Creating...');
+    superAdminRole = await prisma.role.create({
+      data: {
+        name: 'SUPER_ADMIN',
+        displayName: 'Super Administrator',
+        description: 'Super Administrator with full system access',
+        isActive: true,
+        isSystem: true,
+      },
+    });
+    console.log('Created SUPER_ADMIN role:', superAdminRole.id);
+  }
+  return superAdminRole;
+}
+
+async function assignSuperAdminRole(userId: string, roleId: string) {
+    await prisma.userRole.create({
+        data: {
+        userId: userId,
+        roleId: roleId,
+        isActive: true,
+        },
+    });
+    console.log(`Assigned SUPER_ADMIN role to user ${userId}`);
+}
+
 
 async function activateUser() {
   try {
@@ -11,7 +44,7 @@ async function activateUser() {
     
     console.log(`Looking for user with email: ${email}`);
     
-    const user = await prisma.user.findUnique({
+    let user = await prisma.user.findUnique({
       where: { email },
       include: {
         userRoles: {
@@ -25,16 +58,13 @@ async function activateUser() {
     if (!user) {
       console.log('User not found. Creating new user...');
       
-      // First, let's check if there's an organization for 6dtech.co domain
       const organization = await prisma.organization.findFirst({
-        where: {
-          domain: '6dtech.co'
-        }
+        where: { domain: '6dtech.co' },
       });
 
+      let orgId: string;
       if (!organization) {
         console.log('Organization not found for domain 6dtech.co. Creating organization...');
-        
         const newOrg = await prisma.organization.create({
           data: {
             name: '6D Tech',
@@ -43,119 +73,36 @@ async function activateUser() {
             settings: {}
           }
         });
-        
         console.log('Created organization:', newOrg.id);
-        
-        // Create user with the new organization
-        const newUser = await prisma.user.create({
-          data: {
-            email,
-            firstName: 'Riyas',
-            lastName: 'Siddikk',
-            displayName: 'Riyas Siddikk',
-            isActive: true,
-            emailVerifiedAt: new Date(),
-            organizationId: newOrg.id
-          },
-          include: {
-            userRoles: {
-              include: {
-                role: true
-              }
-            }
-          }
-        });
-        
-        console.log('Created user:', newUser.id);
-        
-        // Check if SUPER_ADMIN role exists, if not create it
-        let superAdminRole = await prisma.role.findFirst({
-          where: { name: 'SUPER_ADMIN' }
-        });
-        
-        if (!superAdminRole) {
-          console.log('SUPER_ADMIN role not found. Creating...');
-          superAdminRole = await prisma.role.create({
-            data: {
-              name: 'SUPER_ADMIN',
-              displayName: 'Super Administrator',
-              description: 'Super Administrator with full system access',
-              isActive: true,
-              isSystem: true,
-              level: 'FULL_ACCESS'
-            }
-          });
-          console.log('Created SUPER_ADMIN role:', superAdminRole.id);
-        }
-        
-        // Assign SUPER_ADMIN role to user
-        await prisma.userRole.create({
-          data: {
-            userId: newUser.id,
-            roleId: superAdminRole.id,
-            isActive: true
-          }
-        });
-        
-        console.log('Assigned SUPER_ADMIN role to user');
-        
+        orgId = newOrg.id;
       } else {
         console.log('Found organization:', organization.id);
-        
-        // Create user with existing organization
-        const newUser = await prisma.user.create({
-          data: {
-            email,
-            firstName: 'Riyas',
-            lastName: 'Siddikk',
-            displayName: 'Riyas Siddikk',
-            isActive: true,
-            emailVerifiedAt: new Date(),
-            organizationId: organization.id
-          },
-          include: {
-            userRoles: {
-              include: {
-                role: true
-              }
-            }
-          }
-        });
-        
-        console.log('Created user:', newUser.id);
-        
-        // Check if SUPER_ADMIN role exists, if not create it
-        let superAdminRole = await prisma.role.findFirst({
-          where: { name: 'SUPER_ADMIN' }
-        });
-        
-        if (!superAdminRole) {
-          console.log('SUPER_ADMIN role not found. Creating...');
-          superAdminRole = await prisma.role.create({
-            data: {
-              name: 'SUPER_ADMIN',
-              displayName: 'Super Administrator',
-              description: 'Super Administrator with full system access',
-              isActive: true,
-              isSystem: true,
-              level: 'FULL_ACCESS'
-            }
-          });
-          console.log('Created SUPER_ADMIN role:', superAdminRole.id);
-        }
-        
-        // Assign SUPER_ADMIN role to user
-        await prisma.userRole.create({
-          data: {
-            userId: newUser.id,
-            roleId: superAdminRole.id,
-            isActive: true
-          }
-        });
-        
-        console.log('Assigned SUPER_ADMIN role to user');
+        orgId = organization.id;
       }
       
+      user = await prisma.user.create({
+        data: {
+          email,
+          firstName: 'Riyas',
+          lastName: 'Siddikk',
+          displayName: 'Riyas Siddikk',
+          isActive: true,
+          emailVerifiedAt: new Date(),
+          organizationId: orgId,
+        },
+        include: {
+            userRoles: {
+                include: {
+                    role: true
+                }
+            }
+        }
+      });
+      console.log('Created user:', user.id);
+
+      const superAdminRole = await findOrCreateSuperAdminRole();
+      await assignSuperAdminRole(user.id, superAdminRole.id);
+
     } else {
       console.log('User found:', user.id);
       console.log('Current isActive status:', user.isActive);
@@ -172,43 +119,34 @@ async function activateUser() {
         console.log('User account is already active');
       }
       
-      // Check if user has roles
       if (user.userRoles.length === 0) {
         console.log('User has no roles. Assigning SUPER_ADMIN role...');
-        
-        // Check if SUPER_ADMIN role exists
-        let superAdminRole = await prisma.role.findFirst({
-          where: { name: 'SUPER_ADMIN' }
-        });
-        
-        if (!superAdminRole) {
-          console.log('SUPER_ADMIN role not found. Creating...');
-          superAdminRole = await prisma.role.create({
-            data: {
-              name: 'SUPER_ADMIN',
-              displayName: 'Super Administrator',
-              description: 'Super Administrator with full system access',
-              isActive: true,
-              isSystem: true,
-              level: 'FULL_ACCESS'
-            }
-          });
-          console.log('Created SUPER_ADMIN role:', superAdminRole.id);
-        }
-        
-        // Assign SUPER_ADMIN role to user
-        await prisma.userRole.create({
-          data: {
-            userId: user.id,
-            roleId: superAdminRole.id,
-            isActive: true
-          }
-        });
-        
-        console.log('Assigned SUPER_ADMIN role to user');
+        const superAdminRole = await findOrCreateSuperAdminRole();
+        await assignSuperAdminRole(user.id, superAdminRole.id);
       }
     }
     
+    // Ensure the user has the FULL_ACCESS access level
+    const superAdminAccess = await prisma.userAccessLevel.findFirst({
+        where: {
+            userId: user.id,
+            level: 'FULL_ACCESS'
+        }
+    });
+
+    if (!superAdminAccess) {
+        console.log('User does not have FULL_ACCESS. Assigning...');
+        await prisma.userAccessLevel.create({
+            data: {
+                userId: user.id,
+                level: 'FULL_ACCESS'
+            }
+        });
+        console.log('Assigned FULL_ACCESS to user.');
+    } else {
+        console.log('User already has FULL_ACCESS.');
+    }
+
     console.log('Script completed successfully!');
     
   } catch (error) {
@@ -218,4 +156,4 @@ async function activateUser() {
   }
 }
 
-activateUser(); 
+activateUser();

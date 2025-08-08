@@ -9,7 +9,7 @@ export class RolesService {
   constructor(private prisma: PrismaService) {}
 
   async create(createRoleDto: CreateRoleDto) {
-    const { permissions, ...roleData } = createRoleDto;
+    const { permissions, level, ...roleData } = createRoleDto;
 
     const role = await this.prisma.role.create({
       data: roleData,
@@ -56,7 +56,7 @@ export class RolesService {
   }
 
   async update(id: string, updateRoleDto: UpdateRoleDto) {
-    const { permissions, ...roleData } = updateRoleDto;
+    const { permissions, level, ...roleData } = updateRoleDto;
 
     // Check if role exists and is not a system role
     const existingRole = await this.findOne(id);

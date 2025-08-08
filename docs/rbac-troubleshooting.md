@@ -144,7 +144,20 @@ const { getUserRoles } = usePermissions();
 console.log('User Roles:', getUserRoles());
 ```
 
-#### Role Assignment Issues
+#### Data Visibility Issues
+
+**Symptoms**:
+- A user sees more or less data than they are supposed to (e.g., can't see their team's work logs).
+- Lists of items (users, projects, teams, work logs) are empty or incomplete.
+
+**Troubleshooting Steps**:
+1.  **Check User's Access Levels**: In the User Edit Form, verify that the user has the correct `AccessLevel`s assigned. A user can have multiple.
+2.  **Consult the Data Scoping Guide**: Read the [Data Scoping Guide](./data-scoping-guide.md) to understand how `INDIVIDUAL`, `TEAM`, `PROJECT`, `ORGANIZATION`, and `FULL_ACCESS` are supposed to work.
+3.  **Inspect `DataScopeService`**: The core logic is in `backend/src/common/services/data-scope.service.ts`. Check the `getAccessScopeWhereClause` method to see how the Prisma `WHERE` clause is constructed for the specific resource (`user`, `project`, `team`, `work-log`).
+4.  **Check Special Page Logic**: For the main Users, Teams, and Projects pages, remember there is special logic in the `findAll` methods of their respective services (`UsersService`, `TeamsService`, `ProjectsService`) that adds records (e.g., projects the user owns) on top of the base scope.
+5.  **Verify Database Relationships**: Ensure the user is correctly linked to teams, projects, and an organization in the database. For example, to see team data, the user must be a member of a `Team` via the `TeamMember` table.
+
+### Role Assignment Issues
 **Symptoms**:
 - Users can't be assigned roles
 - Role changes not persisting

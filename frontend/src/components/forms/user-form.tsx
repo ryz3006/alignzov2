@@ -20,6 +20,7 @@ const userSchema = z.object({
   department: z.string().optional(),
   phone: z.string().optional(),
   managerId: z.string().optional(), // Organizational reporting manager
+  accessLevels: z.array(z.string()).optional(),
 });
 
 type UserFormData = z.infer<typeof userSchema>;
@@ -34,6 +35,7 @@ interface User {
   department?: string;
   phone?: string;
   managerId?: string;
+  accessLevels?: Array<{ level: string }>;
   manager?: {
     id: string;
     displayName: string;
@@ -93,6 +95,7 @@ export function UserForm({ user, isOpen, onClose, onSuccess, readOnly = false }:
       department: '',
       phone: '',
       managerId: '',
+      accessLevels: [],
     },
   });
 
@@ -172,6 +175,7 @@ export function UserForm({ user, isOpen, onClose, onSuccess, readOnly = false }:
       setValue('department', user.department || '');
       setValue('phone', user.phone || '');
       setValue('managerId', user.managerId || '');
+      setValue('accessLevels', user.accessLevels?.map(al => al.level) || []);
       
     } else {
       reset();
@@ -179,7 +183,14 @@ export function UserForm({ user, isOpen, onClose, onSuccess, readOnly = false }:
   }, [user, setValue, reset]);
 
   const onSubmit = (data: UserFormData) => {
-    const formData = { ...data };
+    const formData: any = { ...data };
+    // Normalize optional fields that cannot be empty strings
+    if (formData.managerId === '') {
+      delete formData.managerId;
+    }
+    if (Array.isArray(formData.accessLevels) && formData.accessLevels.length === 0) {
+      delete formData.accessLevels;
+    }
     console.log('UserForm onSubmit - formData being sent:', formData);
     if (user) {
       updateUserMutation.mutate(formData);
@@ -313,7 +324,24 @@ export function UserForm({ user, isOpen, onClose, onSuccess, readOnly = false }:
           </div>
         </div>
 
-        {/* Team and Project assignments are managed in their respective modals */}
+        <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Access Levels</label>
+            <div className="grid grid-cols-2 gap-4">
+                {['INDIVIDUAL', 'TEAM', 'PROJECT', 'ORGANIZATION', 'FULL_ACCESS'].map(level => (
+                    <div key={level} className="flex items-center">
+                        <input
+                            id={level}
+                            type="checkbox"
+                            value={level}
+                            {...register('accessLevels')}
+                            className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                            disabled={readOnly}
+                        />
+                        <label htmlFor={level} className="ml-2 block text-sm text-gray-900">{level}</label>
+                    </div>
+                ))}
+            </div>
+        </div>
 
         {/* Form Actions */}
         <div className="flex justify-end gap-3 pt-4 border-t">

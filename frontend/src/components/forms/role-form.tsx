@@ -39,7 +39,6 @@ interface FormData {
   name: string;
   displayName: string;
   description: string;
-  level: 'FULL_ACCESS' | 'PROJECT' | 'TEAM' | 'INDIVIDUAL';
   isActive: boolean;
   permissions: string[];
 }
@@ -104,7 +103,6 @@ export function RoleForm({ role, onSuccess, onCancel }: RoleFormProps) {
     name: '',
     displayName: '',
     description: '',
-    level: 'INDIVIDUAL',
     isActive: true,
     permissions: [],
   });
@@ -158,7 +156,6 @@ export function RoleForm({ role, onSuccess, onCancel }: RoleFormProps) {
       prev.name === next.name &&
       prev.displayName === next.displayName &&
       prev.description === next.description &&
-      prev.level === next.level &&
       prev.isActive === next.isActive &&
       arraysEqual(prev.permissions, next.permissions)
     );
@@ -170,7 +167,6 @@ export function RoleForm({ role, onSuccess, onCancel }: RoleFormProps) {
       name: role.name,
       displayName: role.displayName,
       description: role.description || '',
-      level: role.level,
       isActive: role.isActive,
       permissions: (rolePermissions || []).map(p => p.id),
     };
@@ -424,24 +420,6 @@ export function RoleForm({ role, onSuccess, onCancel }: RoleFormProps) {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label htmlFor="level" className="block text-sm font-medium text-gray-700">
-              Access Level *
-            </label>
-            <select
-              id="level"
-              value={formData.level}
-              onChange={(e) => handleInputChange('level', e.target.value as any)}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-            >
-              {ACCESS_LEVELS.map(level => (
-                <option key={level.value} value={level.value}>
-                  {level.label} - {level.description}
-                </option>
-              ))}
-            </select>
-          </div>
-
           <div className="flex items-center">
             <input
               type="checkbox"

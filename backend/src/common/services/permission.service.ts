@@ -45,6 +45,22 @@ export class PermissionService {
   }
 
   async getUserPermissions(userId: string): Promise<string[]> {
+    // Admin roles implicitly grant all permissions
+    const isAdmin = await this.prisma.userRole.findFirst({
+      where: {
+        userId,
+        isActive: true,
+        role: { name: { in: ['SUPER_ADMIN', 'ADMIN'] }, isActive: true },
+      },
+      select: { id: true },
+    });
+    if (isAdmin) {
+      const allPermissions = await this.prisma.permission.findMany({
+        select: { resource: true, action: true },
+      });
+      return allPermissions.map((p) => `${p.resource}.${p.action}`);
+    }
+
     const userPermissions = await this.prisma.userPermission.findMany({
       where: {
         userId,
@@ -94,6 +110,23 @@ export class PermissionService {
   }
 
   async getUserPermissionsByResource(userId: string, resource: string): Promise<string[]> {
+    // Admin roles implicitly grant all permissions for the resource
+    const isAdmin = await this.prisma.userRole.findFirst({
+      where: {
+        userId,
+        isActive: true,
+        role: { name: { in: ['SUPER_ADMIN', 'ADMIN'] }, isActive: true },
+      },
+      select: { id: true },
+    });
+    if (isAdmin) {
+      const allPermissions = await this.prisma.permission.findMany({
+        where: { resource },
+        select: { resource: true, action: true },
+      });
+      return allPermissions.map((p) => `${p.resource}.${p.action}`);
+    }
+
     const userPermissions = await this.prisma.userPermission.findMany({
       where: {
         userId,

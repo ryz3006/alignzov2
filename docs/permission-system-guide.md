@@ -168,10 +168,7 @@ assignPermissions(@Param('id') id: string, @Body() dto: AssignPermissionsDto) { 
 
 ## Access Levels
 
-Users’ visibility is governed by access levels stored per-user:
-- INDIVIDUAL, TEAM, PROJECT, FULL_ACCESS
-
-Services apply access scoping for list/detail operations based on the requester’s access level.
+Users’ visibility is governed by multi-selectable access levels. The logic for this is centralized in the `DataScopeService`. For a detailed explanation, please see the [Data Scoping Guide](./data-scoping-guide.md).
 
 ## Best Practices
 

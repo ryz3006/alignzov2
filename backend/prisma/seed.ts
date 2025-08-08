@@ -21,7 +21,6 @@ async function main() {
       name: 'SUPER_ADMIN',
       displayName: 'Super Administrator',
       description: 'Full system access with all permissions',
-      level: 'FULL_ACCESS',
       isSystem: true,
       isActive: true,
     },
@@ -34,7 +33,6 @@ async function main() {
       name: 'ADMIN',
       displayName: 'Administrator',
       description: 'Organization-level administrator',
-      level: 'FULL_ACCESS',
       isSystem: true,
       isActive: true,
     },
@@ -47,7 +45,6 @@ async function main() {
       name: 'MANAGER',
       displayName: 'Manager',
       description: 'Team and project manager',
-      level: 'TEAM',
       isSystem: true,
       isActive: true,
     },
@@ -60,7 +57,6 @@ async function main() {
       name: 'EMPLOYEE',
       displayName: 'Employee',
       description: 'Regular employee with basic access',
-      level: 'INDIVIDUAL',
       isSystem: true,
       isActive: true,
     },
@@ -312,17 +308,17 @@ async function main() {
   console.log('✅ ADMIN role assigned to operations user');
 
   // Seed access levels: SUPER_ADMIN/ADMIN get FULL_ACCESS by default
-  await prisma.userAccessLevel.upsert({
-    where: { userId_level: { userId: superAdminUser.id, level: 'FULL_ACCESS' } as any },
+    await prisma.userAccessLevel.upsert({
+    where: { userId_level: { userId: superAdminUser.id, level: 'FULL_ACCESS' } },
     update: {},
-    create: { userId: superAdminUser.id, level: 'FULL_ACCESS' as any },
+    create: { userId: superAdminUser.id, level: 'FULL_ACCESS' },
   });
   await prisma.userAccessLevel.upsert({
-    where: { userId_level: { userId: operationsUser.id, level: 'FULL_ACCESS' } as any },
+    where: { userId_level: { userId: operationsUser.id, level: 'ORGANIZATION' } },
     update: {},
-    create: { userId: operationsUser.id, level: 'FULL_ACCESS' as any },
+    create: { userId: operationsUser.id, level: 'ORGANIZATION' },
   });
-  console.log('✅ Seeded FULL_ACCESS for admin users');
+  console.log('✅ Seeded default access levels for admin users');
 
   // Assign SUPER_ADMIN role to the user
   console.log('🎭 Assigning SUPER_ADMIN role to user...');

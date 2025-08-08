@@ -142,6 +142,8 @@ function UsersPageContent() {
       const data = await response.json();
       return Array.isArray(data) ? (data as Role[]) : [];
     },
+    enabled: isRoleModalOpen && hasPermission('roles', 'read'),
+    retry: false,
   });
 
   // Delete user mutation

@@ -34,7 +34,7 @@ interface Role {
   name: string;
   displayName: string;
   description?: string;
-  level: 'FULL_ACCESS' | 'PROJECT' | 'TEAM' | 'INDIVIDUAL';
+  level?: 'FULL_ACCESS' | 'PROJECT' | 'TEAM' | 'INDIVIDUAL';
   isSystem: boolean;
   isActive: boolean;
   createdAt: string;
@@ -111,7 +111,7 @@ function RolesPageContent() {
       role.displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (role.description && role.description.toLowerCase().includes(searchTerm.toLowerCase()));
     
-    const matchesLevel = levelFilter === 'all' || role.level === levelFilter;
+    const matchesLevel = levelFilter === 'all' || resolveLevel(role) === levelFilter;
     const matchesStatus = statusFilter === 'all' || 
       (statusFilter === 'active' && role.isActive) ||
       (statusFilter === 'inactive' && !role.isActive);
@@ -149,6 +149,13 @@ function RolesPageContent() {
       default:
         return <Shield className="h-4 w-4" />;
     }
+  };
+
+  const resolveLevel = (
+    role: Role,
+  ): 'FULL_ACCESS' | 'PROJECT' | 'TEAM' | 'INDIVIDUAL' => {
+    if (role.level) return role.level;
+    return role.isSystem ? 'FULL_ACCESS' : 'INDIVIDUAL';
   };
 
   const handleDeleteRole = async (roleId: string, roleName: string) => {
@@ -347,9 +354,9 @@ function RolesPageContent() {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center">
-                              {getLevelIcon(role.level)}
-                              <span className={`ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getLevelColor(role.level)}`}>
-                                {role.level.replace('_', ' ')}
+                              {getLevelIcon(resolveLevel(role))}
+                              <span className={`ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getLevelColor(resolveLevel(role))}`}>
+                                {resolveLevel(role).replace('_', ' ')}
                               </span>
                             </div>
                           </td>

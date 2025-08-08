@@ -58,7 +58,7 @@ export class TeamsController {
     if (!createTeamDto.organizationId && req.user.organizationId) {
       createTeamDto.organizationId = req.user.organizationId;
     }
-    return this.teamsService.create(createTeamDto);
+    return this.teamsService.create(createTeamDto, req.user.id);
   }
 
   @Get()

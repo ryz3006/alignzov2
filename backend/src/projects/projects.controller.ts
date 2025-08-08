@@ -42,7 +42,7 @@ export class ProjectsController {
     try {
       const userId = req.user.id;
       const userRole = req.user.role;
-      const projects = await this.projectsService.findAll(userId, userRole);
+      const projects = await this.projectsService.findAll(userId);
 
       // Page-specific guard: if not admin/FULL_ACCESS, include owned or led projects even if not captured by membership
       // (Ownership and leadership are already included by service via ownerId)
@@ -61,7 +61,7 @@ export class ProjectsController {
     try {
       const userId = req.user.id;
       const userRole = req.user.role;
-      return await this.projectsService.findOne(id, userId, userRole);
+      return await this.projectsService.findOne(id, userId);
     } catch (error) {
       throw new HttpException(
         error.message || 'Project not found',
@@ -80,7 +80,7 @@ export class ProjectsController {
     try {
       const userId = req.user.id;
       const userRole = req.user.role;
-      return await this.projectsService.update(id, updateProjectDto, userId, userRole);
+      return await this.projectsService.update(id, updateProjectDto, userId);
     } catch (error) {
       throw new HttpException(
         error.message || 'Failed to update project',
@@ -95,7 +95,7 @@ export class ProjectsController {
     try {
       const userId = req.user.id;
       const userRole = req.user.role;
-      return await this.projectsService.remove(id, userId, userRole);
+      return await this.projectsService.remove(id, userId);
     } catch (error) {
       throw new HttpException(
         error.message || 'Failed to delete project',

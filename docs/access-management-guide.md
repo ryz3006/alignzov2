@@ -5,13 +5,16 @@ This guide explains how access levels and permissions interact, what resources e
 
 ## Access Levels
 
-Supported access levels (stored per user):
+Supported access levels are managed by the `DataScopeService` and are multi-selectable on a per-user basis. For a detailed explanation of how data visibility is determined, see the [Data Scoping Guide](./data-scoping-guide.md).
+
+The available levels are:
 - INDIVIDUAL: access to own data
 - TEAM: access to teams the user is a member/lead of
 - PROJECT: access to projects the user is a member/lead of
+- ORGANIZATION: access to all data within the user's organization
 - FULL_ACCESS: organization-wide access
 
-Services enforce scoping for list/detail operations based on the requester’s access level.
+Services enforce scoping for list/detail operations based on the requester’s access level by using the centralized `DataScopeService`.
 
 ## Permission Structure
 
