@@ -149,69 +149,99 @@ export class UsersService {
   }
 
   async findAll(organizationId?: string, requestingUserId?: string) {
-    // Base filter by organization if provided
-    const where: any = organizationId ? { projectMembers: { some: { project: { organizationId } } } } : {};
-
-    const users = await this.prisma.user.findMany({
-      where,
-      include: {
-        manager: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-          },
+    // Base include selection for returned users
+    const include = {
+      manager: {
+        select: { id: true, firstName: true, lastName: true, email: true },
+      },
+      subordinates: {
+        select: { id: true, firstName: true, lastName: true, email: true },
+      },
+      userRoles: {
+        include: { role: true },
+      },
+      teamMembers: {
+        include: {
+          team: { select: { id: true, name: true, description: true } },
         },
-        subordinates: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-          },
-        },
-        userRoles: {
-          include: {
-            role: true,
-          },
-        },
-        teamMembers: {
-          include: {
-            team: {
-              select: {
-                id: true,
-                name: true,
-                description: true,
-              },
-            },
-          },
-        },
-        projectMembers: {
-          include: {
-            project: {
-              select: {
-                id: true,
-                name: true,
-                code: true,
-              },
-            },
-            reportingTo: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                displayName: true,
-              },
-            },
+      },
+      projectMembers: {
+        include: {
+          project: { select: { id: true, name: true, code: true } },
+          reportingTo: {
+            select: { id: true, firstName: true, lastName: true, displayName: true },
           },
         },
       },
+    } as const;
+
+    // If no requester provided, apply optional org filter only
+    if (!requestingUserId) {
+      const where: any = organizationId
+        ? { projectMembers: { some: { project: { organizationId } } } }
+        : {};
+      return this.prisma.user.findMany({ where, include });
+    }
+
+    // Compute scope and requester org
+    const scope = await this.permissionService.getUserAccessScope(requestingUserId);
+    const requester = await this.prisma.user.findUnique({
+      where: { id: requestingUserId },
+      select: { organizationId: true },
     });
 
-    if (!requestingUserId) return users;
-    // Reuse permission service to scope visible users per access level
-    return this.permissionService.filterUsersByPermission(users as any[], requestingUserId, 'users', 'read');
+    // Admins and FULL_ACCESS: restrict to same organization (if known) or return self only
+    if (scope.fullAccess) {
+      const where: any = requester?.organizationId
+        ? { projectMembers: { some: { project: { organizationId: requester.organizationId } } } }
+        : { id: requestingUserId };
+      return this.prisma.user.findMany({ where, include });
+    }
+
+    // Build allowed user ids: always self
+    const allowedUserIds = new Set<string>([requestingUserId]);
+
+    // Team scope: teammates
+    if (scope.team) {
+      const myTeamIds = await this.prisma.teamMember.findMany({
+        where: { userId: requestingUserId, isActive: true },
+        select: { teamId: true },
+      });
+      if (myTeamIds.length > 0) {
+        const teammates = await this.prisma.teamMember.findMany({
+          where: { teamId: { in: myTeamIds.map(t => t.teamId) }, isActive: true },
+          select: { userId: true },
+        });
+        teammates.forEach(m => allowedUserIds.add(m.userId));
+      }
+    }
+
+    // Project scope: projectmates
+    if (scope.project) {
+      const myProjectIds = await this.prisma.projectMember.findMany({
+        where: { userId: requestingUserId, isActive: true },
+        select: { projectId: true },
+      });
+      if (myProjectIds.length > 0) {
+        const projectMates = await this.prisma.projectMember.findMany({
+          where: { projectId: { in: myProjectIds.map(p => p.projectId) }, isActive: true },
+          select: { userId: true },
+        });
+        projectMates.forEach(m => allowedUserIds.add(m.userId));
+      }
+    }
+
+    // Page rule: always include direct subordinates
+    const subs = await this.prisma.user.findMany({
+      where: { managerId: requestingUserId },
+      select: { id: true },
+    });
+    subs.forEach(s => allowedUserIds.add(s.id));
+
+    return this.prisma.user.findMany({
+      where: { id: { in: Array.from(allowedUserIds) } },
+      include,
+    });
   }
 
   async findById(id: string) {
