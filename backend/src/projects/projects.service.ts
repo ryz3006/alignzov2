@@ -2,10 +2,11 @@ import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/commo
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
+import { PermissionService } from '../common/services/permission.service';
 
 @Injectable()
 export class ProjectsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService, private permissionService: PermissionService) {}
 
   async create(createProjectDto: CreateProjectDto, userId: string) {
     // Get the user's organization
@@ -104,13 +105,22 @@ export class ProjectsService {
   }
 
   async findAll(userId: string, userRole: string) {
+    const scope = await this.permissionService.getUserAccessScope(userId);
+
+    // Determine requester's organization
+    const requester = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { organizationId: true },
+    });
+
     let projects;
 
-    if (userRole === 'SUPER_ADMIN' || userRole === 'ADMIN') {
-      // Super admins and admins can see all projects
+    if (userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' || scope.fullAccess) {
+      // Admins and FULL_ACCESS users can see all projects within their organization
       projects = await this.prisma.project.findMany({
         where: {
           isActive: true,
+          ...(requester?.organizationId ? { organizationId: requester.organizationId } : {}),
         },
         select: {
           id: true,
@@ -185,7 +195,7 @@ export class ProjectsService {
         },
       });
     } else {
-      // Regular users can only see projects they're members of or own
+      // Regular users: see projects they own or are a member of
       projects = await this.prisma.project.findMany({
         where: {
           isActive: true,
@@ -279,13 +289,20 @@ export class ProjectsService {
   }
 
   async findOne(id: string, userId: string, userRole: string) {
+    const scope = await this.permissionService.getUserAccessScope(userId);
+    const requester = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { organizationId: true },
+    });
+
     let project;
 
-    if (userRole === 'SUPER_ADMIN' || userRole === 'ADMIN') {
+    if (userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' || scope.fullAccess) {
       project = await this.prisma.project.findFirst({
         where: {
           id: id,
           isActive: true,
+          ...(requester?.organizationId ? { organizationId: requester.organizationId } : {}),
         },
         include: {
           owner: {

@@ -1,11 +1,12 @@
 import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { PermissionService } from '../common/services/permission.service';
 import { CreateTeamDto } from './dto/create-team.dto';
 import { UpdateTeamDto } from './dto/update-team.dto';
 
 @Injectable()
 export class TeamsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly permissionService: PermissionService) {}
 
   async create(createTeamDto: CreateTeamDto) {
     const { name, description, leaderId, organizationId, memberIds } = createTeamDto;
@@ -139,13 +140,11 @@ export class TeamsService {
       throw new NotFoundException('User not found');
     }
 
-    // Check if user is SUPER_ADMIN or ADMIN
-    const isAdmin = user.userRoles.some(ur => 
-      ur.role.name === 'SUPER_ADMIN' || ur.role.name === 'ADMIN'
-    );
+    const scope = await this.permissionService.getUserAccessScope(userId);
+    const isAdmin = user.userRoles.some(ur => ur.role.name === 'SUPER_ADMIN' || ur.role.name === 'ADMIN');
 
-    if (isAdmin) {
-      // Admins can see all teams in their organization
+    if (isAdmin || scope.fullAccess) {
+      // Admins and FULL_ACCESS users can see all teams in their organization
       return this.prisma.team.findMany({
         where: {
           isActive: true,
@@ -191,12 +190,15 @@ export class TeamsService {
         },
       });
     } else {
-      // Regular users can only see teams they're members of
+      // Regular users can only see teams they're members of or lead
       const userTeamIds = user.teamMembers.map(tm => tm.teamId);
       
       return this.prisma.team.findMany({
         where: {
-          id: { in: userTeamIds },
+          OR: [
+            { id: { in: userTeamIds } },
+            { leaderId: userId },
+          ],
           isActive: true,
         },
         include: {

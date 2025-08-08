@@ -3,12 +3,14 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { OrganizationsService } from '../organizations/organizations.service';
+import { PermissionService } from '../common/services/permission.service';
 
 @Injectable()
 export class UsersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly organizationsService: OrganizationsService,
+    private readonly permissionService: PermissionService,
   ) {}
 
   async create(createUserDto: CreateUserDto) {
@@ -146,18 +148,11 @@ export class UsersService {
     });
   }
 
-  async findAll(organizationId?: string) {
-    const where = organizationId ? { 
-      projectMembers: {
-        some: {
-          project: {
-            organizationId: organizationId
-          }
-        }
-      }
-    } : {};
-    
-    return this.prisma.user.findMany({
+  async findAll(organizationId?: string, requestingUserId?: string) {
+    // Base filter by organization if provided
+    const where: any = organizationId ? { projectMembers: { some: { project: { organizationId } } } } : {};
+
+    const users = await this.prisma.user.findMany({
       where,
       include: {
         manager: {
@@ -213,6 +208,10 @@ export class UsersService {
         },
       },
     });
+
+    if (!requestingUserId) return users;
+    // Reuse permission service to scope visible users per access level
+    return this.permissionService.filterUsersByPermission(users as any[], requestingUserId, 'users', 'read');
   }
 
   async findById(id: string) {

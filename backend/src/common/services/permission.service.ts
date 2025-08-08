@@ -159,13 +159,60 @@ export class PermissionService {
 
   async filterUsersByPermission(users: any[], requestingUserId: string, resource: string, action: string): Promise<any[]> {
     const hasPermission = await this.checkUserPermission(requestingUserId, resource, action);
-    
-    if (!hasPermission) {
-      return [];
+    if (!hasPermission) return [];
+
+    const scope = await this.getUserAccessScope(requestingUserId);
+
+    // If full access, restrict to same organization only
+    if (scope.fullAccess) {
+      const requester = await this.prisma.user.findUnique({
+        where: { id: requestingUserId },
+        select: { organizationId: true },
+      });
+      if (!requester?.organizationId) return users.filter(u => u.id === requestingUserId);
+      return users.filter(u => u.organizationId === requester.organizationId);
     }
 
-    // If user has permission, return all users (you can add more filtering logic here)
-    return users;
+    const allowedUserIds = new Set<string>();
+
+    // INDIVIDUAL: self
+    if (scope.individual) {
+      allowedUserIds.add(requestingUserId);
+    }
+
+    // TEAM: all members in any team the requester belongs to
+    if (scope.team) {
+      const myTeams = await this.prisma.teamMember.findMany({
+        where: { userId: requestingUserId, isActive: true },
+        select: { teamId: true },
+      });
+      if (myTeams.length > 0) {
+        const teamIds = myTeams.map(t => t.teamId);
+        const teammates = await this.prisma.teamMember.findMany({
+          where: { teamId: { in: teamIds }, isActive: true },
+          select: { userId: true },
+        });
+        teammates.forEach(t => allowedUserIds.add(t.userId));
+      }
+    }
+
+    // PROJECT: all members in any project the requester belongs to
+    if (scope.project) {
+      const myProjects = await this.prisma.projectMember.findMany({
+        where: { userId: requestingUserId, isActive: true },
+        select: { projectId: true },
+      });
+      if (myProjects.length > 0) {
+        const projectIds = myProjects.map(p => p.projectId);
+        const projectMates = await this.prisma.projectMember.findMany({
+          where: { projectId: { in: projectIds }, isActive: true },
+          select: { userId: true },
+        });
+        projectMates.forEach(p => allowedUserIds.add(p.userId));
+      }
+    }
+
+    return users.filter(u => allowedUserIds.has(u.id));
   }
 
   async canUserAccessUser(requestingUserId: string, targetUserId: string, action: string): Promise<boolean> {
@@ -219,7 +266,7 @@ export class PermissionService {
   }
 
   // Compute the requester's access scope from roles and explicit user access levels
-  private async getUserAccessScope(userId: string): Promise<{
+  async getUserAccessScope(userId: string): Promise<{
     fullAccess: boolean;
     project: boolean;
     team: boolean;

@@ -66,17 +66,7 @@ export class UsersController {
     description: 'Users retrieved successfully',
   })
   async findAll(@Query('organizationId') organizationId?: string, @Request() req?: any) {
-    const users = await this.usersService.findAll(organizationId);
-    
-    // Filter users based on permissions
-    const filteredUsers = await this.permissionService.filterUsersByPermission(
-      users,
-      req.user.id,
-      'users',
-      'read'
-    );
-    
-    return filteredUsers;
+    return this.usersService.findAll(organizationId, req.user.id);
   }
 
   @Get('search')
