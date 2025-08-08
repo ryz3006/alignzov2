@@ -117,15 +117,32 @@ export function UserForm({ user, isOpen, onClose, onSuccess, readOnly = false }:
   // Create/Update user mutation
   const createUserMutation = useMutation({
     mutationFn: async (data: UserFormData) => {
-      const response = await apiCall('/api/users', {
+      // Do not send accessLevels in the initial create request because the backend CreateUserDto forbids it
+      const { accessLevels, ...createPayload } = data as any;
+
+      const createResponse = await apiCall('/api/users', {
         method: 'POST',
-        body: JSON.stringify(data),
+        body: JSON.stringify(createPayload),
       });
-      if (!response.ok) {
-        const error = await response.json();
+      if (!createResponse.ok) {
+        const error = await createResponse.json();
         throw new Error(error.message || 'Failed to create user');
       }
-      return response.json();
+      const createdUser = await createResponse.json();
+
+      // If access levels were selected, perform a follow-up PATCH to set them
+      if (Array.isArray(accessLevels) && accessLevels.length > 0) {
+        const patchResponse = await apiCall(`/api/users/${createdUser.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ accessLevels }),
+        });
+        if (!patchResponse.ok) {
+          const patchError = await patchResponse.json();
+          throw new Error(patchError.message || 'User created, but failed to set access levels');
+        }
+      }
+
+      return createdUser;
     },
     onSuccess: () => {
       toast.success('User created successfully');
