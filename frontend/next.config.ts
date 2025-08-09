@@ -21,7 +21,24 @@ try {
   if (fs.existsSync(configPath)) {
     const raw = fs.readFileSync(configPath, 'utf-8');
     const cfg = JSON.parse(raw);
-    apiUrl = cfg?.apiUrl || cfg?.backend?.apiUrl || (cfg?.ports?.backend ? `http://localhost:${cfg.ports.backend}` : undefined);
+    const rawApi = cfg?.apiUrl || cfg?.backend?.apiUrl || (cfg?.ports?.backend ? `http://localhost:${cfg.ports.backend}` : undefined);
+    // Normalize malformed URLs like "http://http://host/:3001"
+    const normalizeApiUrl = (value?: string): string | undefined => {
+      if (!value || typeof value !== 'string') return undefined;
+      let v = value.trim();
+      v = v.replace(/^https?:\/\/https?:\/\//i, (m) => m.slice(m.indexOf('://'))); // drop duplicate scheme
+      v = v.replace(/:\//g, ':'); // fix ":/"
+      v = v.replace(/:\s*(\d+)/, ':$1'); // trim spaces before port
+      // Ensure URL parses; if not, return undefined to fall back
+      try {
+        // eslint-disable-next-line no-new
+        new URL(v);
+        return v;
+      } catch {
+        return undefined;
+      }
+    };
+    apiUrl = normalizeApiUrl(rawApi);
     usedConfigSource = 'frontend/config/config.json';
     firebaseFromConfig = cfg?.firebase;
   }
@@ -60,9 +77,9 @@ const nextConfig: NextConfig = {
   env: {
     ALIGNZO_START_MODE: process.env.NODE_ENV === 'production' ? 'PROD' : 'DEV',
     ALIGNZO_CONFIG_SOURCE: usedConfigSource,
-    // Expose API base URL to client
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || apiUrl || 'http://localhost:3001',
-    // Map Firebase config from file if present (can be overridden by real envs)
+    // Expose API base URL to client — prefer config file; do not let env override
+    NEXT_PUBLIC_API_URL: apiUrl || 'http://localhost:3001',
+    // Map Firebase config from file if present (still allow env overrides for Firebase only)
     NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || firebaseFromConfig?.apiKey || '',
     NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || firebaseFromConfig?.authDomain || '',
     NEXT_PUBLIC_FIREBASE_PROJECT_ID: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || firebaseFromConfig?.projectId || '',
