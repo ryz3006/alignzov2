@@ -80,7 +80,7 @@ npm run dev
 - **API Documentation**: http://localhost:3001/api/v1/docs
 
 ### 🔑 Default Login
-- **Email**: `riyas.siddikk@6dtech.co.in`
+- **Email**: `admin email`
 - **Method**: Google OAuth (Click "Sign in with Google")
 - **Access**: Full administrator privileges
 
@@ -251,6 +251,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 **Ready to boost your team's productivity?** [Get started now!](#-quick-start-5-minutes) 🚀
 
 Made with ❤️ for modern teams
+
 
 </div>
 =======
