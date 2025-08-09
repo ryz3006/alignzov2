@@ -17,12 +17,20 @@ async function bootstrap() {
   console.log('=== BOOTSTRAP START ===');
   
   console.log('Creating NestJS app...');
-  const app = await NestFactory.create(AppModule, {
-    // Disable built-in logger to allow our custom logger to take over
-    // once the config is validated and loaded.
-    logger: false,
-  });
-  console.log('NestJS app created successfully');
+  let app;
+  try {
+    app = await NestFactory.create(AppModule, {
+      // Disable built-in logger to allow our custom logger to take over
+      // once the config is validated and loaded.
+      logger: false,
+    });
+    console.log('NestJS app created successfully');
+  } catch (appCreationError) {
+    console.error('=== APP CREATION FAILED ===');
+    console.error('Error during NestFactory.create():', appCreationError?.message);
+    console.error('Stack:', appCreationError?.stack);
+    throw appCreationError;
+  }
 
   // Trigger validated configuration; will throw on invalid env
   console.log('Getting config service...');
