@@ -22,7 +22,16 @@ export class PrismaService
   }
 
   async onModuleInit() {
-    await this.$connect();
+    console.log('Attempting database connection...');
+    try {
+      await this.$connect();
+      console.log('Database connected successfully');
+    } catch (error) {
+      console.error('Database connection failed:', error?.message);
+      console.error('DATABASE_URL format check:', process.env.DATABASE_URL?.substring(0, 20) + '...');
+      // Don't throw - let the app start and handle DB errors per request
+      console.warn('Starting app without database connection - will retry per request');
+    }
   }
 
   async onModuleDestroy() {
