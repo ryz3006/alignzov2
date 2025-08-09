@@ -173,9 +173,35 @@ status_procs() {
 }
 
 case "$ACTION" in
-  start) start_procs ;;
+  start)
+    # Auto-build in PROD if artifacts are missing
+    if [[ "$MODE" == "prod" ]]; then
+      # Backend build check
+      if [[ ! -f "$ROOT_DIR/backend/dist/src/main.js" && ! -f "$ROOT_DIR/backend/dist/src/main.mjs" ]]; then
+        echo "Backend build artifacts missing. Building backend..."
+        ( cd "$ROOT_DIR/backend" && npm run build )
+      fi
+      # Frontend build check
+      if [[ ! -f "$ROOT_DIR/frontend/.next/BUILD_ID" ]]; then
+        echo "Frontend build artifacts missing. Building frontend..."
+        ( cd "$ROOT_DIR/frontend" && npm run build )
+      fi
+    fi
+    start_procs ;;
   stop) stop_procs ;;
-  restart) stop_procs; sleep 1; start_procs ;;
+  restart)
+    stop_procs; sleep 1;
+    if [[ "$MODE" == "prod" ]]; then
+      if [[ ! -f "$ROOT_DIR/backend/dist/src/main.js" && ! -f "$ROOT_DIR/backend/dist/src/main.mjs" ]]; then
+        echo "Backend build artifacts missing. Building backend..."
+        ( cd "$ROOT_DIR/backend" && npm run build )
+      fi
+      if [[ ! -f "$ROOT_DIR/frontend/.next/BUILD_ID" ]]; then
+        echo "Frontend build artifacts missing. Building frontend..."
+        ( cd "$ROOT_DIR/frontend" && npm run build )
+      fi
+    fi
+    start_procs ;;
   status) status_procs ;;
   *) usage; exit 1 ;;
  esac
