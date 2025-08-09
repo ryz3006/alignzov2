@@ -13,6 +13,8 @@ const cookieParser = require('cookie-parser');
 
 async function bootstrap() {
   // Load standardized config.json (if present) and prime env vars
+  let configSummary: any = {};
+  let usedConfigSource = 'none';
   try {
     const configPath = path.join(process.cwd(), 'config', 'config.json');
     if (fs.existsSync(configPath)) {
@@ -30,10 +32,14 @@ async function bootstrap() {
       if (c?.origin) process.env.CORS_ORIGIN = c.origin;
       const firebaseSa = cfg?.firebase?.serviceAccountPath || cfg?.backend?.firebase?.serviceAccountPath;
       if (firebaseSa) process.env.GOOGLE_APPLICATION_CREDENTIALS = firebaseSa;
+      usedConfigSource = 'backend/config/config.json';
+      configSummary = { databaseUrl: Boolean(b?.url), backendPort: p?.backend, redisUrl: Boolean(r?.url), corsOrigin: c?.origin, firebaseSaPath: Boolean(firebaseSa) };
     } else {
       // Fallback to .env if present
       const dotenv = await import('dotenv');
       dotenv.config();
+      usedConfigSource = 'backend/.env';
+      configSummary = { databaseUrl: Boolean(process.env.DATABASE_URL), backendPort: process.env.PORT, redisUrl: Boolean(process.env.REDIS_URL), corsOrigin: process.env.CORS_ORIGIN, firebaseSaPath: Boolean(process.env.GOOGLE_APPLICATION_CREDENTIALS) };
     }
   } catch (e) {
     // Non-fatal
@@ -125,7 +131,12 @@ async function bootstrap() {
   const port = process.env.PORT || 3001;
   await app.listen(port);
   
-  logger.log(`🚀 Application is running on: http://localhost:${port}`);
+  const mode = process.env.NODE_ENV || 'development';
+  logger.log(`🚀 Backend starting in: ${mode.toUpperCase()} mode`);
+  logger.log(`🧩 Config source: ${usedConfigSource}`);
+  logger.log(`🔧 Config summary: DATABASE_URL=${configSummary.databaseUrl ? 'set' : 'missing'}, PORT=${port}, REDIS_URL=${configSummary.redisUrl ? 'set' : 'missing'}, CORS_ORIGIN=${configSummary.corsOrigin || 'missing'}, FIREBASE_SA=${configSummary.firebaseSaPath ? 'set' : 'missing'}`);
+  if (!configSummary.databaseUrl) logger.warn('DATABASE_URL missing. Prisma may fail to connect.');
+  logger.log(`🌐 Backend URL: http://localhost:${port}`);
   logger.log(`📚 API Documentation: http://localhost:${port}/api/docs`);
 }
 

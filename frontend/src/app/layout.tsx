@@ -29,6 +29,11 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased h-full bg-gray-50`}
       >
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `console.info('Frontend starting in:', '${process.env.ALIGNZO_START_MODE}');console.info('Config source:', '${process.env.ALIGNZO_CONFIG_SOURCE||'none'}');console.info('NEXT_PUBLIC_API_URL:', '${process.env.NEXT_PUBLIC_API_URL||'missing'}');`,
+          }}
+        />
         <Providers>
           {children}
         </Providers>
