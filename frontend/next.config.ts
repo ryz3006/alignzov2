@@ -26,9 +26,12 @@ try {
     const normalizeApiUrl = (value?: string): string | undefined => {
       if (!value || typeof value !== 'string') return undefined;
       let v = value.trim();
-      v = v.replace(/^https?:\/\/https?:\/\//i, (m) => m.slice(m.indexOf('://'))); // drop duplicate scheme
-      v = v.replace(/:\//g, ':'); // fix ":/"
-      v = v.replace(/:\s*(\d+)/, ':$1'); // trim spaces before port
+      // If scheme is duplicated (http://http://host), keep the first scheme only
+      v = v.replace(/^(https?:\/\/)(https?:\/\/)/i, '$1');
+      // Fix '/:3001' to ':3001'
+      v = v.replace(/\/:\s*(\d+)/g, ':$1');
+      // Remove accidental spaces
+      v = v.replace(/\s+/g, '');
       // Ensure URL parses; if not, return undefined to fall back
       try {
         // eslint-disable-next-line no-new
