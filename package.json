@@ -60,7 +60,6 @@
     "typecheck": "npm run typecheck:backend && npm run typecheck:frontend",
     "typecheck:backend": "cd backend && npm run typecheck",
     "typecheck:frontend": "cd frontend && npm run typecheck",
-    "prepare": "husky install",
     "precommit": "lint-staged",
     "release": "semantic-release",
     "analyze": "cd frontend && npm run analyze",
@@ -107,3 +106,4 @@
     "pg": "^8.11.5"
   }
 }
+
