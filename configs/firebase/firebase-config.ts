@@ -35,10 +35,10 @@ googleProvider.addScope('email');
 googleProvider.addScope('profile');
 
 // Set custom parameters for Google Auth
-googleProvider.setCustomParameters({
-  prompt: 'select_account',
-  hd: process.env.NEXT_PUBLIC_ALLOWED_DOMAIN || undefined // Domain restriction if needed
-});
+const allowedDomain = process.env.NEXT_PUBLIC_ALLOWED_DOMAIN;
+const providerParams: Record<string, string> = { prompt: 'select_account' };
+if (allowedDomain) providerParams.hd = allowedDomain;
+googleProvider.setCustomParameters(providerParams);
 
 // Auth helper functions
 export const signInWithGoogle = async () => {

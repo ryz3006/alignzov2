@@ -6,10 +6,41 @@ import compression from 'compression';
 import { AppModule } from './app.module';
 import { LoggingMiddleware } from './common/middleware/logging.middleware';
 import { LoggerService } from './common/services/logger.service';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const cookieParser = require('cookie-parser');
 
 async function bootstrap() {
+  // Load standardized config.json (if present) and prime env vars
+  try {
+    const configPath = path.join(process.cwd(), 'config', 'config.json');
+    if (fs.existsSync(configPath)) {
+      const raw = fs.readFileSync(configPath, 'utf-8');
+      const cfg = JSON.parse(raw);
+      const b = cfg?.database || cfg?.backend?.database || cfg?.backend?.config?.database || cfg?.backend?.database;
+      const p = cfg?.ports || cfg?.backend?.ports;
+      const r = cfg?.redis || cfg?.backend?.redis;
+      const s = cfg?.security || cfg?.backend?.security;
+      const c = cfg?.cors || cfg?.backend?.cors;
+      if (b?.url) process.env.DATABASE_URL = b.url;
+      if (p?.backend) process.env.PORT = String(p.backend);
+      if (r?.url) process.env.REDIS_URL = r.url;
+      if (s?.jwtSecret) process.env.JWT_SECRET = s.jwtSecret;
+      if (c?.origin) process.env.CORS_ORIGIN = c.origin;
+      const firebaseSa = cfg?.firebase?.serviceAccountPath || cfg?.backend?.firebase?.serviceAccountPath;
+      if (firebaseSa) process.env.GOOGLE_APPLICATION_CREDENTIALS = firebaseSa;
+    } else {
+      // Fallback to .env if present
+      const dotenv = await import('dotenv');
+      dotenv.config();
+    }
+  } catch (e) {
+    // Non-fatal
+    // eslint-disable-next-line no-console
+    console.warn('Config bootstrap warning:', e);
+  }
+
   const app = await NestFactory.create(AppModule);
 
   // Get logger service

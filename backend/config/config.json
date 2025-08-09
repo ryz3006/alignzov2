@@ -1,0 +1,31 @@
+{
+  "database": {
+    "url": "",
+    "host": "localhost",
+    "port": 5432,
+    "username": "alignzo",
+    "password": "alignzo",
+    "name": "alignzo_v2"
+  },
+  "redis": {
+    "url": "redis://localhost:6379"
+  },
+  "ports": {
+    "backend": 3020
+  },
+  "security": {
+    "jwtSecret": "qwertyuiopoiuytrewqwertyuijhgcxs2345677tfsdvb",
+    "https": false,
+    "certPath": null,
+    "keyPath": null
+  },
+  "cors": {
+    "origin": "http://localhost:3000"
+  },
+  "seed": {
+    "adminEmail": "riyas.siddikk@6dtech.co.in"
+  },
+  "firebase": {
+    "serviceAccountPath": "C:/Users/riyas.siddikk/Documents/AlignzoV2/configs/firebase/dalignzo-firebase-adminsdk-fbsvc-326bf38898.json"
+  }
+}

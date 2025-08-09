@@ -6,15 +6,29 @@ import { getAuth, Auth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
 import { getStorage, FirebaseStorage } from 'firebase/storage';
 
+// Prefer standardized config.json
+let standardConfig: any = undefined;
+try {
+  // server-side only in Next; client falls back to envs
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const fs = require('fs');
+  const path = require('path');
+  const configPath = path.join(process.cwd(), 'config', 'config.json');
+  if (fs.existsSync(configPath)) {
+    const raw = fs.readFileSync(configPath, 'utf-8');
+    standardConfig = JSON.parse(raw);
+  }
+} catch {}
+
 // Firebase configuration object
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || 'AIzaSyCCOH7T907XnZoGxJaESLQghUE0xSDPiHk',
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'dalignzo.firebaseapp.com',
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'dalignzo',
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'dalignzo.firebasestorage.app',
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '901156603087',
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '1:901156603087:web:c95c9f4f714f8f0be263ba',
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || 'G-36S66F65D6'
+  apiKey: standardConfig?.firebase?.apiKey || process.env.NEXT_PUBLIC_FIREBASE_API_KEY || '',
+  authDomain: standardConfig?.firebase?.authDomain || process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || '',
+  projectId: standardConfig?.firebase?.projectId || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || '',
+  storageBucket: standardConfig?.firebase?.storageBucket || process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || '',
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '',
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '',
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || ''
 };
 
 // Initialize Firebase

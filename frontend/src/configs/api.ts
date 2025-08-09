@@ -1,10 +1,24 @@
 // API Configuration
+// Prefer standardized config.json if available at build/runtime
+let standardConfig: any = undefined;
+try {
+  // Next.js bundles at build time; this read will work only server-side/dev
+  // We still fallback to env-based config on client
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const fs = require('fs');
+  const path = require('path');
+  const configPath = path.join(process.cwd(), 'config', 'config.json');
+  if (fs.existsSync(configPath)) {
+    const raw = fs.readFileSync(configPath, 'utf-8');
+    standardConfig = JSON.parse(raw);
+  }
+} catch {}
+
 export const API_CONFIG = {
   // Base URL for API calls - supports multiple environments
-  BASE_URL: process.env.NEXT_PUBLIC_API_URL || 
-            (process.env.NODE_ENV === 'production' 
-              ? 'https://api.alignzo.com' 
-              : 'http://localhost:3001'),
+  BASE_URL: (standardConfig?.apiUrl || standardConfig?.backend?.apiUrl) ||
+            process.env.NEXT_PUBLIC_API_URL ||
+            (process.env.NODE_ENV === 'production' ? 'https://api.alignzo.com' : 'http://localhost:3001'),
   
   // API version for future versioning support
   VERSION: process.env.NEXT_PUBLIC_API_VERSION || 'v1',

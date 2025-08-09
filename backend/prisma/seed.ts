@@ -1,11 +1,31 @@
 import { PrismaClient } from '@prisma/client';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
+import * as fs from 'fs';
 
-// Load environment variables from the development config
-const envPath = path.join(__dirname, '../../configs/development.env');
-dotenv.config({ path: envPath });
+// 1) Load standardized config.json first (if present) and map to envs
+try {
+  const configPath = path.join(__dirname, '..', 'config', 'config.json');
+  if (fs.existsSync(configPath)) {
+    const raw = fs.readFileSync(configPath, 'utf-8');
+    const cfg = JSON.parse(raw);
+    const b = cfg?.database || cfg?.backend?.database;
+    if (b?.url) process.env.DATABASE_URL = b.url;
 
+    const seed = cfg?.seed || cfg?.backend?.seed;
+    if (seed?.adminEmail) process.env.SEED_ADMIN_EMAIL = seed.adminEmail;
+    if (seed?.orgName) process.env.SEED_ORG_NAME = seed.orgName;
+    if (seed?.orgDomain) process.env.SEED_ORG_DOMAIN = seed.orgDomain;
+  }
+} catch {}
+
+// 2) Load environment variables from .env and legacy env as fallback
+const backendEnvPath = path.join(__dirname, '..', '.env');
+const legacyEnvPath = path.join(__dirname, '../../configs/development.env');
+dotenv.config({ path: backendEnvPath });
+dotenv.config({ path: legacyEnvPath });
+
+// Instantiate Prisma after envs are prepared
 const prisma = new PrismaClient();
 
 async function main() {
@@ -202,15 +222,20 @@ async function main() {
   }
   console.log('✅ Core read permissions assigned to ADMIN role');
 
+  // Resolve seed inputs from environment
+  const seedAdminEmail = process.env.SEED_ADMIN_EMAIL || 'admin@alignzo.com';
+  const seedOrgName = process.env.SEED_ORG_NAME || 'Alignzo';
+  const seedOrgDomain = process.env.SEED_ORG_DOMAIN || (seedAdminEmail.split('@')[1] || 'alignzo.local');
+
   // Create a default organization first
   console.log('🏢 Creating default organization...');
   
   const defaultOrg = await prisma.organization.upsert({
-    where: { domain: '6dtech.co.in' },
+    where: { domain: seedOrgDomain },
     update: {},
     create: {
-      name: '6D Technologies',
-      domain: '6dtech.co.in',
+      name: seedOrgName,
+      domain: seedOrgDomain,
       settings: {
         timezone: 'Asia/Kolkata',
         locale: 'en-IN',
@@ -231,21 +256,21 @@ async function main() {
   console.log('👤 Creating super admin user...');
   
   const superAdminUser = await prisma.user.upsert({
-    where: { email: 'riyas.siddikk@6dtech.co.in' },
+    where: { email: seedAdminEmail },
     update: {
-      firstName: 'Riyas',
-      lastName: 'Siddikk',
-      displayName: 'Riyas Siddikk',
+      firstName: 'Super',
+      lastName: 'Admin',
+      displayName: 'Super Admin',
       isActive: true,
       emailVerifiedAt: new Date(),
       organizationId: defaultOrg.id, // Add organization assignment
     },
     create: {
-      email: 'riyas.siddikk@6dtech.co.in',
-      firstName: 'Riyas',
-      lastName: 'Siddikk',
-      displayName: 'Riyas Siddikk',
-      title: 'Super Administrator',
+      email: seedAdminEmail,
+      firstName: 'Super',
+      lastName: 'Admin',
+      displayName: 'Super Admin',
+      title: 'System Administrator',
       department: 'IT',
       isActive: true,
       emailVerifiedAt: new Date(),
@@ -261,7 +286,7 @@ async function main() {
   console.log('👤 Creating operations user...');
   
   const operationsUser = await prisma.user.upsert({
-    where: { email: 'operations@6dtech.co.in' },
+    where: { email: `operations@${seedOrgDomain}` },
     update: {
       firstName: 'Operations',
       lastName: 'User',
@@ -271,7 +296,7 @@ async function main() {
       organizationId: defaultOrg.id,
     },
     create: {
-      email: 'operations@6dtech.co.in',
+      email: `operations@${seedOrgDomain}`,
       firstName: 'Operations',
       lastName: 'User',
       displayName: 'Operations User',
@@ -504,9 +529,9 @@ async function main() {
   console.log('📊 Summary:');
   console.log(`   - Created ${permissions.length} system permissions`);
   console.log(`   - Created 4 system roles (SUPER_ADMIN, ADMIN, MANAGER, EMPLOYEE)`);
-  console.log(`   - Created super admin user: riyas.siddikk@6dtech.co.in`);
-  console.log(`   - Created operations user: operations@6dtech.co.in`);
-  console.log(`   - Created default organization: 6D Technologies`);
+  console.log(`   - Created super admin user: ${seedAdminEmail}`);
+  console.log(`   - Created operations user: operations@${seedOrgDomain}`);
+  console.log(`   - Created default organization: ${seedOrgName}`);
   console.log(`   - Created 2 sample projects`);
   console.log(`   - Created default development team`);
   console.log(`   - Created ${systemSettings.length} system settings`);

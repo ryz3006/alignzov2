@@ -1,0 +1,158 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Alignzo Setup</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 24px; }
+      .container { max-width: 840px; margin: 0 auto; }
+      .card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+      button { padding: 10px 16px; background: #111827; color: #fff; border: 0; border-radius: 6px; cursor: pointer; }
+      input, select { padding: 8px; width: 100%; margin: 6px 0 12px; }
+      h2 { margin: 0 0 12px; }
+      code { background: #f3f4f6; padding: 2px 4px; border-radius: 4px; }
+      .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      .muted { color: #6b7280; }
+      .ok { color: #059669; font-weight: 600; }
+      .bad { color: #dc2626; font-weight: 600; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Alignzo Setup</h1>
+      <div class="card">
+        <button id="btn-init">Initialize Setup</button>
+        <span class="muted" id="msg"></span>
+      </div>
+
+      <div class="card" id="prereq" style="display:none">
+        <h2>Prerequisites</h2>
+        <div id="prereq-content" class="muted">Checking...</div>
+      </div>
+
+      <div class="card" id="config" style="display:none">
+        <h2>Configuration</h2>
+        <h3>Database</h3>
+        <input id="db_url" placeholder="postgresql://user:pass@localhost:5432/alignzo?schema=public" />
+        <div class="row">
+          <input id="db_host" placeholder="DB Host" />
+          <input id="db_port" placeholder="DB Port" value="5432" />
+        </div>
+        <div class="row">
+          <input id="db_user" placeholder="DB Username" />
+          <input id="db_pass" placeholder="DB Password" type="password" />
+        </div>
+        <input id="db_name" placeholder="DB Name" />
+
+        <h3>Redis</h3>
+        <input id="redis_url" placeholder="redis://localhost:6379" />
+
+        <h3>Ports</h3>
+        <div class="row">
+          <input id="port_backend" placeholder="Backend Port" value="3001" />
+          <input id="port_frontend" placeholder="Frontend Port" value="3000" />
+        </div>
+
+        <h3>Super Admin</h3>
+        <input id="admin_email" placeholder="Super Admin Email" />
+
+        <h3>Firebase</h3>
+        <input id="firebase_api_key" placeholder="Firebase API Key" />
+        <input id="firebase_auth_domain" placeholder="Firebase Auth Domain" />
+        <input id="firebase_project_id" placeholder="Firebase Project Id" />
+        <input id="firebase_service_account" type="file" />
+
+        <h3>Security</h3>
+        <input id="jwt_secret" placeholder="JWT Secret" />
+        <label><input id="https_toggle" type="checkbox" /> Enable HTTPS</label>
+        <div class="row">
+          <input id="https_cert" type="file" />
+          <input id="https_key" type="file" />
+        </div>
+
+        <button id="btn-save">Save Configuration</button>
+      </div>
+
+      <div class="card" id="apply" style="display:none">
+        <h2>Finalize</h2>
+        <button id="btn-apply">Run Migration & Seed</button>
+        <div id="apply-msg" class="muted"></div>
+      </div>
+    </div>
+
+    <script>
+      const el = (id) => document.getElementById(id);
+      const show = (id) => el(id).style.display = '';
+      const hide = (id) => el(id).style.display = 'none';
+
+      async function uploadFile(input) {
+        if (!input.files || !input.files[0]) return null;
+        const form = new FormData();
+        form.append('file', input.files[0]);
+        const res = await fetch('/api/setup/upload', { method: 'POST', body: form });
+        const data = await res.json();
+        return data.ok ? data.path : null;
+      }
+
+      el('btn-init').onclick = async () => {
+        el('msg').textContent = ' Checking prerequisites...';
+        const res = await fetch('/api/setup/prerequisites');
+        const data = await res.json();
+        show('prereq');
+        const bins = data.data.bins.map(b => `<div>${b.name}: <span class="${b.installed ? 'ok' : 'bad'}">${b.installed ? 'OK' : 'Missing'}</span> ${b.version ? '('+b.version+')' : ''}</div>`).join('');
+        el('prereq-content').innerHTML = `<div>Platform: <code>${data.data.platform}</code> (${data.data.arch})</div>${bins}`;
+        el('msg').textContent = '';
+        show('config');
+      };
+
+      el('btn-save').onclick = async () => {
+        const firebaseSaPath = await uploadFile(el('firebase_service_account'));
+        const certPath = await uploadFile(el('https_cert'));
+        const keyPath = await uploadFile(el('https_key'));
+        const payload = {
+          backend: {
+            database: {
+              url: el('db_url').value,
+              host: el('db_host').value,
+              port: Number(el('db_port').value),
+              username: el('db_user').value,
+              password: el('db_pass').value,
+              name: el('db_name').value
+            },
+            redis: { url: el('redis_url').value },
+            ports: { backend: Number(el('port_backend').value) },
+            security: { jwtSecret: el('jwt_secret').value, https: el('https_toggle').checked, certPath, keyPath },
+            cors: { origin: `http://localhost:${el('port_frontend').value}` },
+            seed: { adminEmail: el('admin_email').value },
+            firebase: { serviceAccountPath: firebaseSaPath }
+          },
+          frontend: {
+            apiUrl: `http://localhost:${el('port_backend').value}`,
+            port: Number(el('port_frontend').value),
+            firebase: {
+              apiKey: el('firebase_api_key').value,
+              authDomain: el('firebase_auth_domain').value,
+              projectId: el('firebase_project_id').value
+            }
+          }
+        };
+        await fetch('/api/setup/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        show('apply');
+      };
+
+      el('btn-apply').onclick = async () => {
+        el('apply-msg').textContent = ' Applying configuration, running migrations and seed...';
+        const res = await fetch('/api/setup/apply', { method: 'POST' });
+        const data = await res.json();
+        if (data.ok) {
+          el('apply-msg').innerHTML = '<span class="ok">Success! You can now close this window and start the application normally.</span>';
+        } else {
+          el('apply-msg').innerHTML = `<span class="bad">Failed: ${data.error || 'Unknown error'}</span>`;
+        }
+      };
+    </script>
+  </body>
+  </html>
+
+
