@@ -7,44 +7,24 @@ export class PrismaService
   implements OnModuleInit, OnModuleDestroy
 {
   constructor() {
-    console.log('PrismaService constructor called');
-    try {
-      console.log('Initializing Prisma client...');
-      super({
-        datasources: {
-          db: {
-            url: process.env.APP_DATABASE_URL || process.env.DATABASE_URL,
-          },
+    super({
+      datasources: {
+        db: {
+          url: process.env.APP_DATABASE_URL || process.env.DATABASE_URL,
         },
-        log:
-          process.env.NODE_ENV === 'development'
-            ? (['query', 'info', 'warn', 'error'] as const)
-            : (['error'] as const),
-        errorFormat: 'pretty' as const,
-      });
-      console.log('Prisma client initialized successfully');
-    } catch (error) {
-      console.error('Prisma client initialization failed:', error?.message);
-      console.error('Error stack:', error?.stack);
-      throw error;
-    }
+      },
+      log:
+        process.env.NODE_ENV === 'development'
+          ? (['query', 'info', 'warn', 'error'] as const)
+          : (['error'] as const),
+      errorFormat: 'pretty' as const,
+    });
   }
 
   async onModuleInit() {
-    console.log('PrismaService.onModuleInit() called');
-    console.log('Attempting database connection...');
-    try {
-      console.log('Calling this.$connect()...');
-      await this.$connect();
-      console.log('Database connected successfully');
-    } catch (error) {
-      console.error('Database connection failed:', error?.message);
-      console.error('Error stack:', error?.stack);
-      console.error('DATABASE_URL format check:', process.env.DATABASE_URL?.substring(0, 20) + '...');
-      // Don't throw - let the app start and handle DB errors per request
-      console.warn('Starting app without database connection - will retry per request');
-    }
-    console.log('PrismaService.onModuleInit() completed');
+    // Skip database connection during startup to prevent hanging
+    // The connection will be established on first use
+    console.log('PrismaService: Skipping connection during startup for faster boot');
   }
 
   async onModuleDestroy() {

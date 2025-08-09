@@ -21,32 +21,14 @@ export class ValidatedConfigService {
 
   constructor(private readonly vaultService: VaultService) {
     // Parse environment
-    console.log('=== CONFIG SERVICE INIT ===');
-    console.log('Environment variables check:');
-    console.log('NODE_ENV:', process.env.NODE_ENV);
-    console.log('PORT:', process.env.PORT);
-    console.log('DATABASE_URL length:', process.env.DATABASE_URL?.length || 0);
-    console.log('JWT_SECRET length:', process.env.JWT_SECRET?.length || 0);
-    console.log('REDIS_URL:', process.env.REDIS_URL || '(empty)');
-    
     const parsed = EnvSchema.safeParse(process.env);
     if (!parsed.success) {
       const issues = parsed.error.issues
         .map((i) => `${i.path.join('.')}: ${i.message}`)
         .join(', ');
-      console.error('=== ENVIRONMENT VALIDATION FAILED ===');
-      console.error('Issues:', issues);
-      console.error('Raw env sample:', {
-        NODE_ENV: process.env.NODE_ENV,
-        PORT: process.env.PORT,
-        DATABASE_URL: process.env.DATABASE_URL ? '[PRESENT]' : '[MISSING]',
-        JWT_SECRET: process.env.JWT_SECRET ? '[PRESENT]' : '[MISSING]',
-        REDIS_URL: process.env.REDIS_URL || '[EMPTY]'
-      });
       throw new Error(`Invalid environment configuration: ${issues}`);
     }
     this.env = parsed.data;
-    console.log('=== CONFIG SERVICE INIT SUCCESS ===');
 
     // Best-effort secret loading from Vault; skip if not configured
     this.loadSecrets();
