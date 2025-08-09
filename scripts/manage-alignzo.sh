@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 # Alignzo process manager
+
+# Ensure bash even if invoked with sh
+if [ -z "${BASH_VERSION:-}" ]; then exec bash "$0" "$@"; fi
+
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. && pwd)"
@@ -50,7 +54,14 @@ get_from_cfg() {
   local file="$1"; shift
   local expr="$1"; shift
   if [[ -f "$file" ]]; then
-    node -e "const fs=require('fs');const c=JSON.parse(fs.readFileSync('$file','utf8'));function g(o, p){return p.split('.').reduce((a,k)=>a&&a[k],o)};const v=g(c,'$expr');if(v!=null)process.stdout.write(String(v));"
+    node -e '
+      const fs=require("fs");
+      const file=process.argv[1];
+      const expr=process.argv[2];
+      const c=JSON.parse(fs.readFileSync(file,"utf8"));
+      const v=expr.split(".").reduce((a,k)=>a&&a[k], c);
+      if(v!=null) process.stdout.write(String(v));
+    ' "$file" "$expr"
   fi
 }
 
@@ -62,19 +73,23 @@ BACKEND_PORT="$(get_backend_port || true)"
 FRONTEND_PORT="$(get_frontend_port || true)"
 API_URL="$(get_api_url || true)"
 
+# Sanitize values: if empty or non-numeric for ports, fallback
+if ! [[ "$BACKEND_PORT" =~ ^[0-9]+$ ]]; then BACKEND_PORT=""; fi
+if ! [[ "$FRONTEND_PORT" =~ ^[0-9]+$ ]]; then FRONTEND_PORT=""; fi
+
 # Defaults if not set
 : "${BACKEND_PORT:=3001}"
 : "${FRONTEND_PORT:=3000}"
 : "${API_URL:=http://localhost:${BACKEND_PORT}}"
 
-export PORT="$BACKEND_PORT"
+# Do not export PORT globally; pass per-process to avoid leaking to frontend
 export NEXT_PUBLIC_API_URL="$API_URL"
 
 # Compose commands
-BACKEND_CMD_DEV=(bash -lc "cd backend && npm run dev")
-FRONTEND_CMD_DEV=(bash -lc "cd frontend && npm run dev")
-BACKEND_CMD_PROD=(bash -lc "cd backend && npm run start:prod")
-FRONTEND_CMD_PROD=(bash -lc "cd frontend && npm run start")
+BACKEND_CMD_DEV=(bash -lc "cd backend && PORT=$BACKEND_PORT NODE_ENV=development npm run dev")
+FRONTEND_CMD_DEV=(bash -lc "cd frontend && PORT=$FRONTEND_PORT NODE_ENV=development NEXT_PUBLIC_API_URL='$API_URL' npm run dev")
+BACKEND_CMD_PROD=(bash -lc "cd backend && PORT=$BACKEND_PORT NODE_ENV=production npm run start:prod")
+FRONTEND_CMD_PROD=(bash -lc "cd frontend && PORT=$FRONTEND_PORT NODE_ENV=production NEXT_PUBLIC_API_URL='$API_URL' npm run start")
 
 start_procs() {
   local log_target="/dev/stdout"
@@ -88,7 +103,10 @@ start_procs() {
       ;;
   esac
 
+  echo "Config: backend_port=$BACKEND_PORT frontend_port=$FRONTEND_PORT api_url=$API_URL mode=$MODE launch=$LAUNCH"
   if [[ "$MODE" == "dev" ]]; then
+    echo "Starting Backend (DEV) on :$BACKEND_PORT" 
+    echo "Starting Frontend (DEV) on :$FRONTEND_PORT"
     if [[ "$LAUNCH" == "nohup" ]]; then
       nohup "${BACKEND_CMD_DEV[@]}" >> "$log_target" 2>&1 & echo $! > "$ROOT_DIR/.backend.pid"
       nohup "${FRONTEND_CMD_DEV[@]}" >> "$log_target" 2>&1 & echo $! > "$ROOT_DIR/.frontend.pid"
@@ -102,6 +120,8 @@ start_procs() {
       wait
     fi
   else
+    echo "Starting Backend (PROD) on :$BACKEND_PORT" 
+    echo "Starting Frontend (PROD) on :$FRONTEND_PORT"
     if [[ "$LAUNCH" == "nohup" ]]; then
       nohup "${BACKEND_CMD_PROD[@]}" >> "$log_target" 2>&1 & echo $! > "$ROOT_DIR/.backend.pid"
       nohup "${FRONTEND_CMD_PROD[@]}" >> "$log_target" 2>&1 & echo $! > "$ROOT_DIR/.frontend.pid"
