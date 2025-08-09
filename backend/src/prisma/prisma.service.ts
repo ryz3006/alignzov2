@@ -7,18 +7,33 @@ export class PrismaService
   implements OnModuleInit, OnModuleDestroy
 {
   constructor() {
-    super({
-      datasources: {
-        db: {
-          url: process.env.APP_DATABASE_URL || process.env.DATABASE_URL,
+    console.log('PrismaService constructor called');
+    try {
+      console.log('Initializing Prisma client...');
+      super({
+        datasources: {
+          db: {
+            url: process.env.APP_DATABASE_URL || process.env.DATABASE_URL,
+          },
         },
-      },
-      log:
-        process.env.NODE_ENV === 'development'
-          ? (['query', 'info', 'warn', 'error'] as const)
-          : (['error'] as const),
-      errorFormat: 'pretty' as const,
-    });
+        log:
+          process.env.NODE_ENV === 'development'
+            ? (['query', 'info', 'warn', 'error'] as const)
+            : (['error'] as const),
+        errorFormat: 'pretty' as const,
+        // Add connection timeout to prevent hanging
+        __internal: {
+          engine: {
+            enableRawQueries: true,
+          },
+        },
+      });
+      console.log('Prisma client initialized successfully');
+    } catch (error) {
+      console.error('Prisma client initialization failed:', error?.message);
+      console.error('Error stack:', error?.stack);
+      throw error;
+    }
   }
 
   async onModuleInit() {

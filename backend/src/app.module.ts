@@ -37,7 +37,7 @@ import { SyncModule } from './sync/sync.module';
     (() => { console.log('Loading AppConfigModule...'); return AppConfigModule; })(),
     (() => { console.log('Loading ThrottlerModule...'); return ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]); })(),
     (() => { console.log('Loading CommonModule...'); return CommonModule; })(),
-    (() => { console.log('Loading PrismaModule...'); return PrismaModule; })(),
+    // (() => { console.log('Loading PrismaModule...'); return PrismaModule; })(),
     (() => { console.log('Loading AuthModule...'); return AuthModule; })(),
     (() => { console.log('Loading UsersModule...'); return UsersModule; })(),
     (() => { console.log('Loading TeamsModule...'); return TeamsModule; })(),
