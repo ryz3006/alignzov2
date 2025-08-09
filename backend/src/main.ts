@@ -124,6 +124,16 @@ async function bootstrap() {
 
 bootstrap().catch((err) => {
   // Fallback to console.error if the logger hasn't been initialized
-  console.error('Application failed to start:', err);
+  console.error('=== APPLICATION STARTUP FAILED ===');
+  console.error('Error:', err);
+  console.error('Stack:', err?.stack);
+  console.error('Message:', err?.message);
+  console.error('Environment check:');
+  console.error('NODE_ENV:', process.env.NODE_ENV);
+  console.error('PORT:', process.env.PORT);
+  console.error('DATABASE_URL exists:', !!process.env.DATABASE_URL);
+  console.error('JWT_SECRET exists:', !!process.env.JWT_SECRET);
+  console.error('REDIS_URL:', process.env.REDIS_URL || '(empty)');
+  console.error('===================================');
   process.exit(1);
 });
