@@ -14,18 +14,35 @@ import * as path from 'path';
 const cookieParser = require('cookie-parser');
 
 async function bootstrap() {
+  console.log('=== BOOTSTRAP START ===');
+  
+  console.log('Creating NestJS app...');
   const app = await NestFactory.create(AppModule, {
     // Disable built-in logger to allow our custom logger to take over
     // once the config is validated and loaded.
     logger: false,
   });
+  console.log('NestJS app created successfully');
 
   // Trigger validated configuration; will throw on invalid env
+  console.log('Getting config service...');
   const configService = app.get(ValidatedConfigService);
+  console.log('Config service obtained');
 
   // Get and attach logger service
+  console.log('Getting logger service...');
   const logger = app.get(LoggerService);
   app.useLogger(logger);
+  console.log('Logger service attached');
+
+  // Test database connection
+  console.log('Testing database connection...');
+  try {
+    const prisma = app.get('PrismaService');
+    console.log('PrismaService obtained');
+  } catch (e) {
+    console.log('PrismaService error:', e?.message);
+  }
 
   // CORS configuration
   const corsOriginString = configService.get('CORS_ORIGIN');
@@ -110,15 +127,19 @@ async function bootstrap() {
   SwaggerModule.setup('api/v1/docs', app, document);
 
   const port = configService.get('PORT');
+  console.log('Starting server on port:', port);
   await app.listen(port);
+  console.log('Server listening on port:', port);
 
   const mode = configService.get('NODE_ENV');
   logger.log(`🚀 Backend starting in: ${mode.toUpperCase()} mode`);
   try {
     logger.log(`🌐 Backend URL: http://localhost:${port}`);
     logger.log(`📚 API Documentation: http://localhost:${port}/api/v1/docs`);
+    console.log('=== BOOTSTRAP COMPLETE ===');
   } catch (e) {
     // noop if logger not ready
+    console.log('=== BOOTSTRAP COMPLETE (logger not ready) ===');
   }
 }
 
