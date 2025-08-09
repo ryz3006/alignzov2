@@ -16,7 +16,7 @@ export default function LoginPage() {
     console.log('Login page effect - isLoading:', isLoading, 'user:', user?.email);
     if (!isLoading && user) {
       console.log('User already authenticated, redirecting to dashboard');
-      router.push('/dashboard');
+      router.replace('/dashboard');
     }
   }, [user, isLoading, router]);
 

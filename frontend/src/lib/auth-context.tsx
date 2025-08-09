@@ -87,11 +87,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             localStorage.setItem('jwt_token', userData.token);
             localStorage.setItem('user', JSON.stringify(userData.user));
             
-            // Only redirect on initial load, not on subsequent auth state changes
-            if (isInitialLoad) {
-              console.log('Redirecting to dashboard on initial load');
-              router.push('/dashboard');
-            }
+            // Ensure redirect to dashboard after successful authentication
+            console.log('Redirecting to dashboard after authentication');
+            router.replace('/dashboard');
           } else {
             const errorData = await response.text();
             console.error('Failed to authenticate with backend:', response.status, errorData);

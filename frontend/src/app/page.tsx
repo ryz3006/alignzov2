@@ -14,10 +14,10 @@ export default function HomePage() {
     if (!isLoading) {
       if (user) {
         console.log('User authenticated, redirecting to dashboard');
-        router.push('/dashboard');
+        router.replace('/dashboard');
       } else {
         console.log('No user, redirecting to login');
-        router.push('/login');
+        router.replace('/login');
       }
     }
   }, [user, isLoading, router]);

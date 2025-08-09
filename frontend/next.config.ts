@@ -36,6 +36,19 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async headers() {
+    return [
+      {
+        // Ensure Firebase auth popups can communicate with the opener
+        source: '/:path*',
+        headers: [
+          { key: 'Cross-Origin-Opener-Policy', value: 'same-origin-allow-popups' },
+          // Explicitly disable COEP to avoid isolating the browsing context which breaks popups
+          { key: 'Cross-Origin-Embedder-Policy', value: 'unsafe-none' },
+        ],
+      },
+    ];
+  },
   eslint: {
     // Prevent ESLint errors from failing production builds
     ignoreDuringBuilds: true,
