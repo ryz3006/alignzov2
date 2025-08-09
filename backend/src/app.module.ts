@@ -29,7 +29,7 @@ import { MetricsModule } from './metrics/metrics.module';
 // import { BullModule } from '@nestjs/bullmq';
 import { VaultModule } from './vault/vault.module';
 import { SyncModule } from './sync/sync.module';
-import { UploadsModule } from './uploads/uploads.module';
+// import { UploadsModule } from './uploads/uploads.module';
 
 @Module({
   imports: [
@@ -59,7 +59,7 @@ import { UploadsModule } from './uploads/uploads.module';
     // }),
     VaultModule,
     SyncModule,
-    UploadsModule,
+    // UploadsModule,
   ],
   controllers: [AppController],
   providers: [
