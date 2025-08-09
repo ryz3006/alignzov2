@@ -227,7 +227,7 @@ Visit http://localhost:3001/api/docs for interactive API documentation with Swag
 #### 2. Super Admin User Not Visible
 **Problem**: Super admin user not appearing in users list
 **Solution**:
-- Ensure you're logged in with `riyas.siddikk@6dtech.co.in`
+- Ensure you're logged in with the admin user
 - The user exists in database and should be visible after authentication
 - Check browser console for any API errors
 
@@ -235,7 +235,7 @@ Visit http://localhost:3001/api/docs for interactive API documentation with Swag
 **Problem**: 401 Unauthorized errors
 **Solution**:
 - Log in via Google OAuth at http://localhost:3000
-- Use the super admin email: `riyas.siddikk@6dtech.co.in`
+- Use the super admin email: `admin email`
 - Clear browser cache if authentication persists
 
 #### 4. Database Connection Issues
