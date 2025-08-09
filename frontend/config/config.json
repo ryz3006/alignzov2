@@ -1,5 +1,5 @@
 {
-  "apiUrl": "http://localhost:3001",
+  "apiUrl": "http://localhost:3020",
   "port": 3000,
   "firebase": {
     "apiKey": "AIzaSyCCOH7T907XnZoGxJaESLQghUE0xSDPiHk",

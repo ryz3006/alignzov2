@@ -65,6 +65,10 @@ export const API_CONFIG = {
 export const buildApiUrl = (endpoint: string): string => {
   // Remove leading slash if present to avoid double slashes
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
+  // If this is an API route, prefer relative URL so Next.js rewrites can proxy
+  if (endpoint.startsWith('/api/')) {
+    return `/${cleanEndpoint}`;
+  }
   return `${API_CONFIG.BASE_URL}/${cleanEndpoint}`;
 };
 
