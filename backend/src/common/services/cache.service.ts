@@ -26,7 +26,17 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleInit() {
-    await this.redisClient.connect();
+    // Connect to Redis asynchronously without blocking app startup
+    this.connectRedis();
+  }
+
+  private async connectRedis() {
+    try {
+      await this.redisClient.connect();
+    } catch (error) {
+      this.logger.error('Redis connection failed during startup', error.message);
+      this.logger.warn('Redis caching will be disabled until connection is restored');
+    }
   }
 
   async onModuleDestroy() {

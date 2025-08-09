@@ -14,18 +14,22 @@ import * as path from 'path';
 const cookieParser = require('cookie-parser');
 
 async function bootstrap() {
+  console.log('Starting app creation...');
   const app = await NestFactory.create(AppModule, {
     // Disable built-in logger to allow our custom logger to take over
     // once the config is validated and loaded.
     logger: false,
   });
+  console.log('App created, getting services...');
 
   // Trigger validated configuration; will throw on invalid env
   const configService = app.get(ValidatedConfigService);
+  console.log('Config service loaded');
 
   // Get and attach logger service
   const logger = app.get(LoggerService);
   app.useLogger(logger);
+  console.log('Logger service loaded');
 
   // CORS configuration
   const corsOriginString = configService.get('CORS_ORIGIN');

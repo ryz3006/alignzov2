@@ -51,15 +51,20 @@ export class SiemService implements OnModuleInit {
 
   async onModuleInit() {
     if (this.isEnabled) {
-      try {
-        // Test connection and create index if needed
-        await this.ensureIndexExists();
-        this.logger.log('SIEM service connected to Elasticsearch successfully');
-      } catch (error) {
-        this.logger.warn(`Failed to initialize SIEM service: ${error.message}`);
-      }
+      // Initialize Elasticsearch connection asynchronously without blocking startup
+      this.initializeElasticsearch();
     } else {
       this.logger.log('SIEM service disabled - no Elasticsearch URL configured');
+    }
+  }
+
+  private async initializeElasticsearch() {
+    try {
+      // Test connection and create index if needed
+      await this.ensureIndexExists();
+      this.logger.log('SIEM service connected to Elasticsearch successfully');
+    } catch (error) {
+      this.logger.warn(`Failed to initialize SIEM service: ${error.message}`);
     }
   }
 

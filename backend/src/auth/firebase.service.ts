@@ -10,6 +10,7 @@ export class FirebaseService implements OnModuleInit {
   constructor(private readonly configService: ConfigService) {}
 
   async onModuleInit() {
+    console.log('FirebaseService onModuleInit starting...');
     const serviceAccountPath = this.configService.get<string>(
       'FIREBASE_ADMIN_SDK_PATH',
     );
@@ -18,6 +19,7 @@ export class FirebaseService implements OnModuleInit {
       console.warn(
         'FIREBASE_ADMIN_SDK_PATH not configured - Firebase authentication will be disabled',
       );
+      console.log('FirebaseService onModuleInit completed (no service account)');
       return;
     }
 
@@ -88,6 +90,7 @@ export class FirebaseService implements OnModuleInit {
       console.warn('Error details:', error);
       console.warn('Firebase authentication will be disabled');
     }
+    console.log('FirebaseService onModuleInit completed');
   }
 
   async verifyIdToken(idToken: string): Promise<admin.auth.DecodedIdToken> {
