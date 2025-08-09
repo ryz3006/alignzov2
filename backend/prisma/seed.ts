@@ -222,6 +222,26 @@ async function main() {
   }
   console.log('✅ Core read permissions assigned to ADMIN role');
 
+  // Ensure EMPLOYEE has basic permissions but cannot access Roles/Organizations by default
+  const employeeReadPermissions = permissions.filter(p =>
+    [
+      'users.read','projects.read','teams.read','time_sessions.read','work_logs.read','permissions.read'
+    ].includes(p.name)
+  );
+  for (const permission of employeeReadPermissions) {
+    const perm = await prisma.permission.findUnique({ where: { name: permission.name } });
+    if (perm) {
+      await prisma.rolePermission.upsert({
+        where: {
+          roleId_permissionId: { roleId: employeeRole.id, permissionId: perm.id },
+        },
+        update: {},
+        create: { roleId: employeeRole.id, permissionId: perm.id },
+      });
+    }
+  }
+  console.log('✅ Basic permissions assigned to EMPLOYEE role (no roles/organizations access)');
+
   // Resolve seed inputs from environment
   const seedAdminEmail = process.env.SEED_ADMIN_EMAIL || 'admin@alignzo.com';
   const seedOrgName = process.env.SEED_ORG_NAME || 'Alignzo';

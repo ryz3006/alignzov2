@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
-import { SettingsPageGuard } from '@/components/auth/page-permission-guard';
+import { OrganizationsPageGuard } from '@/components/auth/page-permission-guard';
 import { OrganizationForm } from '@/components/forms/organization-form';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,9 +28,9 @@ interface Organization {
 
 export default function OrganizationsPage() {
   return (
-    <SettingsPageGuard>
+    <OrganizationsPageGuard>
       <OrganizationsPageContent />
-    </SettingsPageGuard>
+    </OrganizationsPageGuard>
   );
 }
 

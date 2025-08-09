@@ -297,7 +297,7 @@ async function standardizePermissions() {
     if (employeeRole) {
       const employeePermissions = [
         'users.read',
-        'roles.read',
+        // Intentionally exclude 'roles.read' so EMPLOYEE users cannot access Roles
         'permissions.read',
         'projects.read',
         'teams.read',

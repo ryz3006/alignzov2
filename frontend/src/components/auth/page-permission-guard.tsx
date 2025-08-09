@@ -187,3 +187,14 @@ export function SettingsPageGuard({ children }: { children: React.ReactNode }) {
     </PagePermissionGuard>
   );
 } 
+
+// Organizations specific permission guard
+export function OrganizationsPageGuard({ children }: { children: React.ReactNode }) {
+  return (
+    <PagePermissionGuard
+      requiredPermissions={[{ resource: 'organizations', action: 'read' }]}
+    >
+      {children}
+    </PagePermissionGuard>
+  );
+}
