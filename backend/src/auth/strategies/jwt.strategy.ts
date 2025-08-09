@@ -21,8 +21,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: any) {
-    const user = (await this.authService.validateUser(payload.sub)) as UserWithRoles;
-    
+    const user = (await this.authService.validateUser(
+      payload.sub,
+    )) as UserWithRoles;
+
     if (!user) {
       throw new UnauthorizedException('User not found');
     }
@@ -32,7 +34,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     const primaryRole = user.userRoles?.[0]?.role?.name || 'USER';
-    
+
     return {
       id: user.id,
       email: user.email,

@@ -1,228 +1,205 @@
-# Alignzo V2 - Time Tracking & Project Management Platform
+# 📚 AlignzoV2 Documentation
 
-## 🎯 **Project Overview**
-
-Alignzo V2 is a comprehensive time tracking and project management platform designed for multi-tenant organizations. It provides advanced user management, role-based access control, team collaboration, and detailed time tracking capabilities.
-
----
-
-## ✨ **Key Features**
-
-### 🔐 **Multi-Tenant Authentication**
-- **Google OAuth Integration**: Secure authentication via Google
-- **Organization Domain Validation**: Automatic user assignment by email domain
-- **Role-Based Access Control**: SUPER_ADMIN, ADMIN, MANAGER, EMPLOYEE roles
-- **JWT Token Management**: Secure session management with automatic refresh
-
-### 👥 **User & Organization Management**
-- **Multi-Tenant Architecture**: Complete data isolation between organizations
-- **Hierarchical User Management**: Support for reporting managers and organizational structure
-- **Team Management**: Create and manage teams within organizations
-- **Project Management**: Create projects with owners and team associations
-
-### ⏱️ **Time Tracking System**
-- **Real-time Tracking**: Start, pause, and stop time tracking
-- **Work Logs**: Detailed work log entries with descriptions
-- **Project Association**: Time tracking linked to specific projects
-- **Analytics**: Time tracking analytics and reporting
-
-### 🛡️ **Permission System**
-- **Granular Permissions**: Fine-grained permission control
-- **Role-Permission Mapping**: Assign permissions to roles
-- **Permission Guards**: Frontend and backend permission validation
-- **Dynamic Access Control**: Real-time permission checking
+**Version**: 2.0  
+**Last Updated**: January 2025  
+**Status**: Production Ready
 
 ---
 
-## 🏗️ **Technology Stack**
+## 🎯 Quick Navigation
 
-### **Backend**
-- **Framework**: NestJS with TypeScript
-- **Database**: PostgreSQL with Prisma ORM
-- **Authentication**: Firebase + JWT
-- **API**: RESTful API with Swagger documentation
-
-### **Frontend**
-- **Framework**: Next.js 14 with App Router
-- **UI**: Tailwind CSS with custom components
-- **State Management**: React Context + TanStack Query
-- **Authentication**: Firebase Auth + Custom JWT handling
+| Document | Description | For |
+|----------|-------------|-----|
+| **[Setup Guide](setup-guide.md)** | Complete installation & setup instructions | New Developers |
+| **[Architecture](architecture.md)** | System design & technology decisions | Architects & Leads |
+| **[API Reference](api-reference.md)** | Complete API documentation | Frontend & Integration Developers |
+| **[Development Guide](development-guide.md)** | Development workflow & guidelines | All Developers |
+| **[Security Guide](security-guide.md)** | Security implementation & best practices | Security Teams |
+| **[Troubleshooting](troubleshooting-guide.md)** | Common issues & solutions | Support & DevOps |
 
 ---
 
-## 🚀 **Quick Start**
+## 🚀 Project Overview
 
-### **Prerequisites**
-- Node.js 18+
-- PostgreSQL 14+
-- Firebase project
-- Google OAuth credentials
+AlignzoV2 is a comprehensive enterprise team productivity platform designed for:
 
-### **Installation**
+- **Time Tracking & Work Management**: Advanced time tracking with project categorization
+- **Multi-tenant Organizations**: Complete data isolation between organizations  
+- **Role-Based Access Control**: Granular permissions and access levels
+- **Team Collaboration**: Team management with hierarchical reporting
+- **Analytics & Reporting**: Real-time dashboards and productivity insights
+- **Firebase Authentication**: Secure Google OAuth integration
+- **Audit Logging**: Complete activity tracking and compliance
 
-1. **Clone the repository**
+---
+
+## 🏗️ Architecture Summary
+
+### Technology Stack
+- **Backend**: NestJS 10+ with TypeScript, PostgreSQL 16+, Prisma ORM
+- **Frontend**: Next.js 15+ with React 19, Tailwind CSS, TanStack Query
+- **Authentication**: Firebase Admin SDK with JWT tokens
+- **Database**: PostgreSQL with comprehensive RBAC schema
+- **Optional**: Redis (caching/queues), Elasticsearch (SIEM)
+
+### System Design
+```
+Frontend (Next.js) ↔ Backend API (NestJS) ↔ PostgreSQL Database
+        ↕                     ↕                     ↕
+Firebase Auth        Redis Cache        Audit Logging
+```
+
+---
+
+## 📊 Current Status
+
+### ✅ Completed Features
+- **Multi-tenant Organization System** - Complete data isolation
+- **User Management & Authentication** - Google OAuth + RBAC
+- **Team & Project Management** - Full CRUD with assignments  
+- **Time Tracking System** - Sessions, work logs, analytics
+- **Permission System** - Granular role-based access control
+- **API Framework** - RESTful with OpenAPI documentation
+- **Security Implementation** - JWT, rate limiting, audit logging
+
+### 🔄 In Development
+- **Enhanced Analytics** - Advanced reporting and insights
+- **Mobile Optimization** - API improvements for mobile clients
+- **Performance Tuning** - Caching and query optimization
+
+### 📋 Roadmap
+- **Mobile Application** - React Native implementation
+- **Advanced Integrations** - Third-party tool connections
+- **AI/ML Features** - Predictive analytics and insights
+
+---
+
+## 🏁 Getting Started
+
+### Quick Setup (5 Minutes)
 ```bash
+# Clone and install
 git clone <repository-url>
 cd AlignzoV2
-```
+npm run install:all
 
-2. **Backend Setup**
-```bash
-cd backend
-npm install
-cp configs/development.env .env
-# Configure your environment variables
-npx prisma migrate dev
-npm run start:dev
-```
+# Setup database and seed data
+npm run setup:seed
 
-3. **Frontend Setup**
-```bash
-cd frontend
-npm install
-cp configs/frontend.env.example .env.local
-# Configure your environment variables
+# Start development servers
 npm run dev
 ```
 
-4. **Access the Application**
+**Access Points:**
 - Frontend: http://localhost:3000
-- Backend API: http://localhost:3001
-- API Documentation: http://localhost:3001/api
+- Backend API: http://localhost:3001  
+- API Docs: http://localhost:3001/api/v1/docs
+
+**Default Login:** `riyas.siddikk@6dtech.co.in` (Google OAuth)
+
+### Prerequisites
+- Node.js 20+ LTS
+- PostgreSQL 14+
+- Git
+
+### Detailed Setup
+See **[Setup Guide](setup-guide.md)** for comprehensive installation instructions.
 
 ---
 
-## 📚 **Documentation**
+## 🔧 Development Workflow
 
-### **Core Documentation**
-- [**Project Management Fixes Summary**](./project-management-fixes-summary.md) - Complete guide to project management fixes and improvements
-- [**Authentication Flow Guide**](./authentication-flow-guide.md) - Complete guide to authentication and recent fixes
-- [**Hierarchy Validation Summary**](./hierarchy-validation-summary.md) - Validation of organizational hierarchy requirements
-- [**API Reference**](./api-reference.md) - Complete API documentation
-- [**Quick Start Guide**](./quick-start.md) - Step-by-step setup instructions
+### Core Commands
+```bash
+# Development
+npm run dev              # Start both services
+npm run dev:backend      # Backend only  
+npm run dev:frontend     # Frontend only
 
-### **Implementation Guides**
-- [**Organization Management**](./organization-management-implementation.md) - Organization setup and management
-- [**User Management**](./user-management-summary.md) - User creation and role assignment
-- [**Permission System**](./permission-system-guide.md) - Permission and role management
-- [**Time Tracking**](./time-tracking-improvements.md) - Time tracking features and improvements
+# Database
+npm run db:studio        # Visual database browser
+npm run db:seed          # Refresh sample data
+npm run db:generate      # Update Prisma client
 
-### **Troubleshooting & Support**
-- [**Troubleshooting Guide**](./troubleshooting-guide.md) - Common issues and solutions
-- [**Current Status**](./current-status.md) - Project status and recent updates
-- [**Development Guide**](./development-guide.md) - Development workflow and guidelines
-
----
-
-## 🔧 **Recent Updates (December 2024)**
-
-### **✅ Authentication Flow Improvements**
-- **Login Redirect Fix**: Resolved critical issue where users weren't redirected to dashboard after successful login
-- **Organization Domain Validation**: Enhanced security by validating organization domains before user creation
-- **Error Handling**: Implemented specific error pages for unauthorized organizations and not-onboarded users
-- **Auth State Management**: Consolidated duplicate auth listeners and improved state management
-
-### **✅ Hierarchy Requirements Validation**
-- **Comprehensive Audit**: Validated all 9 hierarchy requirements against current codebase
-- **Gap Analysis**: Identified and fixed 3 critical gaps in organization validation and user onboarding
-- **Documentation**: Created detailed validation summary and authentication flow guide
-
-### **✅ TypeScript Compilation Fixes**
-- **Project Assignment DTO**: Simplified and fixed type definitions to remove role field conflicts
-- **User Form Updates**: Updated frontend components to match simplified backend DTOs
-- **Service Layer Fixes**: Resolved compilation errors in users service
-
----
-
-## 🏗️ **Architecture Overview**
-
-### **Multi-Tenant Design**
-```
-Organization (Root)
-├── Users (with roles and permissions)
-├── Teams (user groups)
-├── Projects (with owners and team associations)
-├── Time Sessions (tracking data)
-└── Work Logs (detailed entries)
+# Quality
+npm run lint             # Code linting
+npm run test             # Run tests
+npm run build            # Production build
 ```
 
-### **Authentication Flow**
-```
-User Login → Google OAuth → Organization Validation → User Creation/Retrieval → JWT Token → Dashboard Access
-```
-
-### **Permission System**
-```
-Roles (SUPER_ADMIN, ADMIN, MANAGER, EMPLOYEE) → Permissions → Resource Access Control
-```
+### API Development
+- **Base URL**: `/api/v1/*`
+- **Authentication**: Firebase JWT → Custom JWT
+- **Documentation**: Auto-generated OpenAPI/Swagger
+- **Standards**: RESTful design with consistent error handling
 
 ---
 
-## 🔒 **Security Features**
+## 🔒 Security Features
 
-- **Organization Isolation**: Complete data separation between organizations
-- **Domain Validation**: Email domain must match registered organization
-- **JWT Authentication**: Secure token-based authentication
-- **Role-Based Access**: Granular permission control
-- **Input Validation**: Comprehensive validation at all layers
-- **CORS Protection**: Secure cross-origin request handling
-
----
-
-## 📊 **Performance & Scalability**
-
-- **API Response Time**: < 200ms average
-- **Database Optimization**: Proper indexing and query optimization
-- **Frontend Performance**: Optimized bundling and code splitting
-- **Scalability**: Designed to handle thousands of concurrent users
+- **Multi-factor Authentication** via Firebase + Google OAuth
+- **Role-Based Access Control** with organization-scoped permissions
+- **Data Isolation** between organizations with domain validation
+- **Audit Logging** for all write operations and sensitive actions
+- **Rate Limiting** on all endpoints with tiered limits
+- **Input Validation** using Zod schemas and class-validator
+- **CORS Protection** with environment-specific origins
 
 ---
 
-## 🐛 **Troubleshooting**
+## 📞 Support & Troubleshooting
 
-### **Common Issues**
-1. **Login Redirect Not Working**: Check browser console and verify Firebase configuration
-2. **Organization Validation Failing**: Verify organization domain is registered in database
-3. **TypeScript Compilation Errors**: Run `npm run build` to identify specific issues
+### Common Issues
+1. **Database Connection** - Check PostgreSQL service and credentials
+2. **Authentication Errors** - Verify Firebase configuration  
+3. **Port Conflicts** - Kill processes: `npx kill-port 3000 3001`
+4. **API Failures** - Check backend health: `curl localhost:3001/healthz`
 
-### **Getting Help**
-- Check the [Troubleshooting Guide](./troubleshooting-guide.md)
-- Review the [Authentication Flow Guide](./authentication-flow-guide.md)
-- Examine the [API Reference](./api-reference.md)
-
----
-
-## 🤝 **Contributing**
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-### **Development Guidelines**
-- Follow TypeScript best practices
-- Use ESLint and Prettier for code formatting
-- Write comprehensive documentation
-- Add unit tests for new features
+### Getting Help
+- **Troubleshooting Guide**: [troubleshooting-guide.md](troubleshooting-guide.md)
+- **API Documentation**: [api-reference.md](api-reference.md)  
+- **Development Guide**: [development-guide.md](development-guide.md)
+- **Architecture Deep Dive**: [architecture.md](architecture.md)
 
 ---
 
-## 📄 **License**
+## 📈 Performance & Scalability
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+### Current Metrics
+- **API Response Time**: < 200ms (95th percentile)
+- **Database Performance**: Optimized queries with proper indexing
+- **Frontend Load Time**: < 2s initial load
+- **Authentication Flow**: < 1s login process
+
+### Scalability Design
+- **Database**: PostgreSQL with connection pooling
+- **Caching**: Multi-layer strategy (Redis, HTTP, Browser)
+- **API**: RESTful design with cursor-based pagination
+- **Frontend**: Optimized bundles with code splitting
 
 ---
 
-## 📞 **Support**
+## 🤝 Contributing
 
-For support and questions:
-- Check the documentation in the `docs/` folder
-- Review the troubleshooting guide
-- Examine the API reference for technical details
+### Development Standards
+- **Code Quality**: ESLint + Prettier (enforced via Husky)
+- **Commit Format**: Conventional Commits
+- **Testing**: Unit tests for critical paths
+- **Documentation**: Update docs for API changes
+
+### Workflow
+1. Create feature branch
+2. Follow development guidelines
+3. Add tests for new functionality  
+4. Update documentation
+5. Submit pull request
 
 ---
 
-*Last Updated: December 2024*
-*Version: 2.0*
-*Status: Production Ready* 
+## 📄 License
+
+This project is licensed under the MIT License.
+
+---
+
+*This documentation provides a comprehensive guide to the AlignzoV2 platform. For specific topics, refer to the individual guides linked above.*

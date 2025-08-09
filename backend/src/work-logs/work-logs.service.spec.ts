@@ -77,7 +77,12 @@ describe('WorkLogsService', () => {
         userId,
         startTime: new Date(createWorkLogDto.startTime),
         endTime: new Date(createWorkLogDto.endTime),
-        user: { id: userId, firstName: 'John', lastName: 'Doe', email: 'john@example.com' },
+        user: {
+          id: userId,
+          firstName: 'John',
+          lastName: 'Doe',
+          email: 'john@example.com',
+        },
         project: { id: 'project-123', name: 'Test Project', code: 'TEST' },
       };
 
@@ -184,7 +189,9 @@ describe('WorkLogsService', () => {
 
       const mockUserProjects = [{ projectId: 'project-123' }];
 
-      mockPrismaService.projectMember.findMany.mockResolvedValue(mockUserProjects);
+      mockPrismaService.projectMember.findMany.mockResolvedValue(
+        mockUserProjects,
+      );
       mockPrismaService.workLog.findMany.mockResolvedValue(mockWorkLogs);
       mockPrismaService.workLog.count.mockResolvedValue(1);
 
@@ -283,9 +290,9 @@ describe('WorkLogsService', () => {
 
       mockPrismaService.workLog.findUnique.mockResolvedValue(mockWorkLog);
 
-      await expect(service.update(workLogId, updateWorkLogDto, userId)).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        service.update(workLogId, updateWorkLogDto, userId),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 
@@ -374,7 +381,9 @@ describe('WorkLogsService', () => {
         },
       ];
 
-      mockPrismaService.projectMember.findMany.mockResolvedValue(mockUserProjects);
+      mockPrismaService.projectMember.findMany.mockResolvedValue(
+        mockUserProjects,
+      );
       mockPrismaService.workLog.aggregate
         .mockResolvedValueOnce(mockTotalHours)
         .mockResolvedValueOnce(mockTotalBillableHours);
@@ -403,4 +412,4 @@ describe('WorkLogsService', () => {
       });
     });
   });
-}); 
+});

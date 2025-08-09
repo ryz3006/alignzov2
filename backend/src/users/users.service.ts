@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  BadRequestException,
+} from '@nestjs/common';
 import { Prisma, User } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -21,39 +26,46 @@ export class UsersService {
     }
 
     const { teamIds, projectAssignments, ...userData } = createUserDto;
-    const organization = await this.organizationsService.validateUserDomain(userData.email);
+    const organization = await this.organizationsService.validateUserDomain(
+      userData.email,
+    );
     if (!organization) {
-        throw new BadRequestException('Cannot create user without a valid organization domain.');
+      throw new BadRequestException(
+        'Cannot create user without a valid organization domain.',
+      );
     }
 
     return this.prisma.user.create({
-        data: {
-            ...userData,
-            organizationId: organization.id,
-            emailVerifiedAt: userData.emailVerified ? new Date() : null,
-            avatar: userData.avatarUrl,
-        }
+      data: {
+        ...userData,
+        organizationId: organization.id,
+        emailVerifiedAt: userData.emailVerified ? new Date() : null,
+        avatar: userData.avatarUrl,
+      },
     });
   }
 
-  async findAll(organizationId?: string, requestingUserId?: string): Promise<User[]> {
+  async findAll(
+    organizationId?: string,
+    requestingUserId?: string,
+  ): Promise<User[]> {
     if (!requestingUserId) {
-        throw new NotFoundException('A requesting user ID must be provided.');
+      throw new NotFoundException('A requesting user ID must be provided.');
     }
 
-    const whereScope = await this.dataScopeService.getAccessScopeWhereClause(requestingUserId, 'user');
-    
+    const whereScope = await this.dataScopeService.getAccessScopeWhereClause(
+      requestingUserId,
+      'user',
+    );
+
     const subordinates = await this.prisma.user.findMany({
-        where: { managerId: requestingUserId },
-        select: { id: true },
+      where: { managerId: requestingUserId },
+      select: { id: true },
     });
-    const subordinateIds = subordinates.map(s => s.id);
+    const subordinateIds = subordinates.map((s) => s.id);
 
     const specialAccess: Prisma.UserWhereInput = {
-        OR: [
-            { id: requestingUserId },
-            { id: { in: subordinateIds } },
-        ],
+      OR: [{ id: requestingUserId }, { id: { in: subordinateIds } }],
     };
 
     const finalWhere: Prisma.UserWhereInput = {
@@ -61,10 +73,11 @@ export class UsersService {
     };
 
     if (organizationId) {
-        (finalWhere.AND as Prisma.UserWhereInput[]) = (finalWhere.AND as Prisma.UserWhereInput[]) || [];
-        (finalWhere.AND as Prisma.UserWhereInput[]).push({ organizationId });
+      (finalWhere.AND as Prisma.UserWhereInput[]) =
+        (finalWhere.AND as Prisma.UserWhereInput[]) || [];
+      (finalWhere.AND as Prisma.UserWhereInput[]).push({ organizationId });
     }
-    
+
     return this.prisma.user.findMany({
       where: finalWhere,
       include: {
@@ -78,14 +91,18 @@ export class UsersService {
     });
   }
 
-  async findById(id: string, requestingUserId: string, options: { includeRoles?: boolean } = {}): Promise<User> {
-    const where = await this.dataScopeService.getAccessScopeWhereClause(requestingUserId, 'user');
-    
+  async findById(
+    id: string,
+    requestingUserId: string,
+    options: { includeRoles?: boolean } = {},
+  ): Promise<User> {
+    const where = await this.dataScopeService.getAccessScopeWhereClause(
+      requestingUserId,
+      'user',
+    );
+
     const finalWhere: Prisma.UserWhereInput = {
-        AND: [
-            where,
-            { id: id }
-        ]
+      AND: [where, { id: id }],
     };
 
     const include: Prisma.UserInclude = {
@@ -110,7 +127,7 @@ export class UsersService {
 
     return user;
   }
-  
+
   async findByEmail(email: string): Promise<User | null> {
     return this.prisma.user.findUnique({
       where: { email },
@@ -126,22 +143,25 @@ export class UsersService {
     const { accessLevels, ...userData } = updateUserDto;
 
     return this.prisma.$transaction(async (prisma) => {
-        const updatedUser = await prisma.user.update({
-            where: { id },
-            data: {
-                ...userData,
-                avatar: userData.avatarUrl,
-            },
-        });
+      const updatedUser = await prisma.user.update({
+        where: { id },
+        data: {
+          ...userData,
+          avatar: userData.avatarUrl,
+        },
+      });
 
-        if (accessLevels) {
-            await prisma.userAccessLevel.deleteMany({ where: { userId: id } });
-            await prisma.userAccessLevel.createMany({
-                data: accessLevels.map(level => ({ userId: id, level: level as any })),
-            });
-        }
-        
-        return updatedUser;
+      if (accessLevels) {
+        await prisma.userAccessLevel.deleteMany({ where: { userId: id } });
+        await prisma.userAccessLevel.createMany({
+          data: accessLevels.map((level) => ({
+            userId: id,
+            level: level as any,
+          })),
+        });
+      }
+
+      return updatedUser;
     });
   }
 
@@ -160,7 +180,8 @@ export class UsersService {
     };
 
     if (organizationId) {
-      (where.AND as Prisma.UserWhereInput[]) = (where.AND as Prisma.UserWhereInput[]) || [];
+      (where.AND as Prisma.UserWhereInput[]) =
+        (where.AND as Prisma.UserWhereInput[]) || [];
       (where.AND as Prisma.UserWhereInput[]).push({ organizationId });
     }
 
@@ -184,7 +205,7 @@ export class UsersService {
       data: { managerId: null },
     });
   }
-  
+
   async assignRole(userId: string, roleId: string) {
     return this.prisma.$transaction(async (prisma) => {
       await prisma.userRole.deleteMany({ where: { userId } });
@@ -198,20 +219,20 @@ export class UsersService {
   }
 
   async removeRole(userId: string, roleId: string) {
-      return this.prisma.userRole.delete({
-          where: {
-              userId_roleId: {
-                  userId,
-                  roleId,
-              }
-          }
-      });
+    return this.prisma.userRole.delete({
+      where: {
+        userId_roleId: {
+          userId,
+          roleId,
+        },
+      },
+    });
   }
 
   async getUserRoles(userId: string) {
-      return this.prisma.userRole.findMany({
-          where: { userId },
-          include: { role: true }
-      });
+    return this.prisma.userRole.findMany({
+      where: { userId },
+      include: { role: true },
+    });
   }
 }

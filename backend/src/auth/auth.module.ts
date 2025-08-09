@@ -10,6 +10,7 @@ import { FirebaseService } from './firebase.service';
 import { UsersModule } from '../users/users.module';
 import { OrganizationsModule } from '../organizations/organizations.module';
 import { PrismaModule } from '../prisma/prisma.module';
+import { DeviceSessionsModule } from '../device-sessions/device-sessions.module';
 
 @Module({
   imports: [
@@ -27,9 +28,10 @@ import { PrismaModule } from '../prisma/prisma.module';
     UsersModule,
     OrganizationsModule,
     PrismaModule,
+    DeviceSessionsModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, GoogleStrategy, FirebaseService],
   exports: [AuthService, JwtStrategy, PassportModule],
 })
-export class AuthModule {} 
+export class AuthModule {}

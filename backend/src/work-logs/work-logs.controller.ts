@@ -10,12 +10,20 @@ import {
   UseGuards,
   Request,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { WorkLogsService } from './work-logs.service';
 import { CreateWorkLogDto } from './dto/create-work-log.dto';
 import { UpdateWorkLogDto } from './dto/update-work-log.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { PermissionGuard, RequirePermissions } from '../common/guards/permission.guard';
+import {
+  PermissionGuard,
+  RequirePermissions,
+} from '../common/guards/permission.guard';
 
 @ApiTags('work-logs')
 @ApiBearerAuth()
@@ -95,4 +103,4 @@ export class WorkLogsController {
   async approve(@Param('id') id: string, @Request() req) {
     return this.workLogsService.approve(id, req.user.id);
   }
-} 
+}

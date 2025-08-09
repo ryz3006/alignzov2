@@ -11,4 +11,4 @@ import { CommonModule } from '../common/common.module';
   providers: [UsersService],
   exports: [UsersService],
 })
-export class UsersModule {} 
+export class UsersModule {}

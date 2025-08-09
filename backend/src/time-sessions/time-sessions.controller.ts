@@ -16,7 +16,10 @@ import { TimeSessionsService } from './time-sessions.service';
 import { CreateTimeSessionDto } from './dto/create-time-session.dto';
 import { UpdateTimeSessionDto } from './dto/update-time-session.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { PermissionGuard, RequirePermissions } from '../common/guards/permission.guard';
+import {
+  PermissionGuard,
+  RequirePermissions,
+} from '../common/guards/permission.guard';
 
 @Controller('time-sessions')
 @UseGuards(JwtAuthGuard, PermissionGuard)
@@ -25,10 +28,16 @@ export class TimeSessionsController {
 
   @Post()
   @RequirePermissions('time_sessions', 'create')
-  async create(@Body() createTimeSessionDto: CreateTimeSessionDto, @Request() req) {
+  async create(
+    @Body() createTimeSessionDto: CreateTimeSessionDto,
+    @Request() req,
+  ) {
     try {
       const userId = req.user.id;
-      return await this.timeSessionsService.create(createTimeSessionDto, userId);
+      return await this.timeSessionsService.create(
+        createTimeSessionDto,
+        userId,
+      );
     } catch (error) {
       throw new HttpException(
         error.message || 'Failed to create time session',
@@ -132,7 +141,11 @@ export class TimeSessionsController {
   ) {
     try {
       const userId = req.user.id;
-      return await this.timeSessionsService.update(id, updateTimeSessionDto, userId);
+      return await this.timeSessionsService.update(
+        id,
+        updateTimeSessionDto,
+        userId,
+      );
     } catch (error) {
       throw new HttpException(
         error.message || 'Failed to update time session',
@@ -154,4 +167,4 @@ export class TimeSessionsController {
       );
     }
   }
-} 
+}

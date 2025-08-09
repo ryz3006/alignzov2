@@ -1,4 +1,8 @@
-import { Injectable, ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  ExecutionContext,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Reflector } from '@nestjs/core';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
@@ -14,11 +18,11 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       context.getHandler(),
       context.getClass(),
     ]);
-    
+
     if (isPublic) {
       return true;
     }
-    
+
     return super.canActivate(context);
   }
 
@@ -29,14 +33,18 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
 
     // Check if user has organization assignment
     if (!user.organizationId) {
-      throw new UnauthorizedException('Your account requires additional setup. Please contact your administrator for onboarding.');
+      throw new UnauthorizedException(
+        'Your account requires additional setup. Please contact your administrator for onboarding.',
+      );
     }
 
     // Check if user is active
     if (!user.isActive) {
-      throw new UnauthorizedException('Your account has been deactivated. Please contact your administrator.');
+      throw new UnauthorizedException(
+        'Your account has been deactivated. Please contact your administrator.',
+      );
     }
 
     return user;
   }
-} 
+}

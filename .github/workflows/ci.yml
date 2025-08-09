@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests (backend)
+        run: npm run test:backend --workspace backend --silent || npm run test:backend
+
+      - name: Unit tests (frontend)
+        run: npm run test:frontend --workspace frontend --silent || npm run test:frontend
+
+      - name: E2E tests (backend)
+        run: npm run test:e2e --workspace backend
+
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v2
+        with:
+          name: coverage-report
+          path: |
+            backend/coverage
+            frontend/coverage
+
+

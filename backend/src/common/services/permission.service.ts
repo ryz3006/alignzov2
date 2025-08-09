@@ -5,7 +5,11 @@ import { PrismaService } from '../../prisma/prisma.service';
 export class PermissionService {
   constructor(private prisma: PrismaService) {}
 
-  async checkUserPermission(userId: string, resource: string, action: string): Promise<boolean> {
+  async checkUserPermission(
+    userId: string,
+    resource: string,
+    action: string,
+  ): Promise<boolean> {
     // Check direct user permissions
     const userPermission = await this.prisma.userPermission.findFirst({
       where: {
@@ -95,13 +99,13 @@ export class PermissionService {
     const permissions = new Set<string>();
 
     // Add direct user permissions
-    userPermissions.forEach(up => {
+    userPermissions.forEach((up) => {
       permissions.add(`${up.permission.resource}.${up.permission.action}`);
     });
 
     // Add role-based permissions
-    rolePermissions.forEach(ur => {
-      ur.role.rolePermissions.forEach(rp => {
+    rolePermissions.forEach((ur) => {
+      ur.role.rolePermissions.forEach((rp) => {
         permissions.add(`${rp.permission.resource}.${rp.permission.action}`);
       });
     });
@@ -109,7 +113,10 @@ export class PermissionService {
     return Array.from(permissions);
   }
 
-  async getUserPermissionsByResource(userId: string, resource: string): Promise<string[]> {
+  async getUserPermissionsByResource(
+    userId: string,
+    resource: string,
+  ): Promise<string[]> {
     // Admin roles implicitly grant all permissions for the resource
     const isAdmin = await this.prisma.userRole.findFirst({
       where: {
@@ -176,13 +183,13 @@ export class PermissionService {
     const permissions = new Set<string>();
 
     // Add direct user permissions
-    userPermissions.forEach(up => {
+    userPermissions.forEach((up) => {
       permissions.add(`${up.permission.resource}.${up.permission.action}`);
     });
 
     // Add role-based permissions
-    rolePermissions.forEach(ur => {
-      ur.role.rolePermissions.forEach(rp => {
+    rolePermissions.forEach((ur) => {
+      ur.role.rolePermissions.forEach((rp) => {
         permissions.add(`${rp.permission.resource}.${rp.permission.action}`);
       });
     });
@@ -190,8 +197,17 @@ export class PermissionService {
     return Array.from(permissions);
   }
 
-  async filterUsersByPermission(users: any[], requestingUserId: string, resource: string, action: string): Promise<any[]> {
-    const hasPermission = await this.checkUserPermission(requestingUserId, resource, action);
+  async filterUsersByPermission(
+    users: any[],
+    requestingUserId: string,
+    resource: string,
+    action: string,
+  ): Promise<any[]> {
+    const hasPermission = await this.checkUserPermission(
+      requestingUserId,
+      resource,
+      action,
+    );
     if (!hasPermission) return [];
 
     const scope = await this.getUserAccessScope(requestingUserId);
@@ -202,8 +218,9 @@ export class PermissionService {
         where: { id: requestingUserId },
         select: { organizationId: true },
       });
-      if (!requester?.organizationId) return users.filter(u => u.id === requestingUserId);
-      return users.filter(u => u.organizationId === requester.organizationId);
+      if (!requester?.organizationId)
+        return users.filter((u) => u.id === requestingUserId);
+      return users.filter((u) => u.organizationId === requester.organizationId);
     }
 
     const allowedUserIds = new Set<string>();
@@ -220,12 +237,12 @@ export class PermissionService {
         select: { teamId: true },
       });
       if (myTeams.length > 0) {
-        const teamIds = myTeams.map(t => t.teamId);
+        const teamIds = myTeams.map((t) => t.teamId);
         const teammates = await this.prisma.teamMember.findMany({
           where: { teamId: { in: teamIds }, isActive: true },
           select: { userId: true },
         });
-        teammates.forEach(t => allowedUserIds.add(t.userId));
+        teammates.forEach((t) => allowedUserIds.add(t.userId));
       }
     }
 
@@ -236,21 +253,29 @@ export class PermissionService {
         select: { projectId: true },
       });
       if (myProjects.length > 0) {
-        const projectIds = myProjects.map(p => p.projectId);
+        const projectIds = myProjects.map((p) => p.projectId);
         const projectMates = await this.prisma.projectMember.findMany({
           where: { projectId: { in: projectIds }, isActive: true },
           select: { userId: true },
         });
-        projectMates.forEach(p => allowedUserIds.add(p.userId));
+        projectMates.forEach((p) => allowedUserIds.add(p.userId));
       }
     }
 
-    return users.filter(u => allowedUserIds.has(u.id));
+    return users.filter((u) => allowedUserIds.has(u.id));
   }
 
-  async canUserAccessUser(requestingUserId: string, targetUserId: string, action: string): Promise<boolean> {
+  async canUserAccessUser(
+    requestingUserId: string,
+    targetUserId: string,
+    action: string,
+  ): Promise<boolean> {
     // Check if user has the specific action permission
-    const hasActionPermission = await this.checkUserPermission(requestingUserId, 'users', action);
+    const hasActionPermission = await this.checkUserPermission(
+      requestingUserId,
+      'users',
+      action,
+    );
     if (!hasActionPermission) return false;
 
     // Apply access level scoping
@@ -337,4 +362,4 @@ export class PermissionService {
       individual: true,
     };
   }
-} 
+}

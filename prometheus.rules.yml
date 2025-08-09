@@ -1,0 +1,19 @@
+groups:
+- name: alignzo-api
+  rules:
+  - alert: HighErrorRate
+    expr: sum(rate(http_requests_total{status=~"5.."}[5m])) / sum(rate(http_requests_total[5m])) > 0.05
+    for: 1m
+    labels:
+      severity: page
+    annotations:
+      summary: High error rate on the API
+      description: 'The API is returning a high number of 5xx errors. The error rate is {{ $value | humanize }}%.'
+  - alert: HighLatency
+    expr: histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) > 1
+    for: 1m
+    labels:
+      severity: page
+    annotations:
+      summary: High latency on the API
+      description: 'The API is experiencing high latency. The 99th percentile latency is {{ $value | humanize }}s.'

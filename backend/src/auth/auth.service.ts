@@ -1,4 +1,8 @@
-import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  BadRequestException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { User } from '@prisma/client';
@@ -9,6 +13,7 @@ import { AuthResponseDto } from './dto/auth-response.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { LoggerService } from '../common/services/logger.service';
 import { OrganizationsService } from '../organizations/organizations.service';
+import { DeviceSessionsService } from '../device-sessions/device-sessions.service';
 
 type UserWithRoles = User & { userRoles: { role: { name: string } }[] };
 
@@ -22,6 +27,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
     private readonly organizationsService: OrganizationsService,
+    private readonly deviceSessionsService: DeviceSessionsService,
   ) {}
 
   async validateFirebaseToken(idToken: string): Promise<any> {
@@ -33,14 +39,27 @@ export class AuthService {
     }
   }
 
-  async loginWithGoogle(idToken: string): Promise<AuthResponseDto> {
+  async loginWithGoogle(
+    idToken: string, 
+    deviceInfo?: {
+      deviceId?: string;
+      platform?: string;
+      appVersion?: string;
+      deviceName?: string;
+      osVersion?: string;
+    }
+  ): Promise<AuthResponseDto> {
     const firebaseUser = await this.validateFirebaseToken(idToken);
-    const organization = await this.organizationsService.validateUserDomain(firebaseUser.email);
+    const organization = await this.organizationsService.validateUserDomain(
+      firebaseUser.email,
+    );
     if (!organization) {
       throw new UnauthorizedException('Your organization is not registered.');
     }
 
-    let user: User | null = await this.usersService.findByEmail(firebaseUser.email);
+    let user: User | null = await this.usersService.findByEmail(
+      firebaseUser.email,
+    );
     if (!user) {
       const createUserDto: CreateUserDto = {
         email: firebaseUser.email,
@@ -59,17 +78,48 @@ export class AuthService {
       throw new UnauthorizedException('Failed to create or retrieve user');
     }
 
-    const userWithRoles = (await this.usersService.findById(
-      user.id,
-      user.id,
-      { includeRoles: true },
-    )) as UserWithRoles;
-    if (!userWithRoles || !userWithRoles.userRoles || userWithRoles.userRoles.length === 0) {
-      throw new UnauthorizedException('Your account requires additional setup. Please contact your administrator.');
+    const userWithRoles = (await this.usersService.findById(user.id, user.id, {
+      includeRoles: true,
+    })) as UserWithRoles;
+    if (
+      !userWithRoles ||
+      !userWithRoles.userRoles ||
+      userWithRoles.userRoles.length === 0
+    ) {
+      throw new UnauthorizedException(
+        'Your account requires additional setup. Please contact your administrator.',
+      );
     }
 
-    const token = await this.generateToken(userWithRoles as UserWithRoles);
+    const token = await this.generateToken(userWithRoles);
     const primaryRole = userWithRoles.userRoles[0]?.role?.name || 'USER';
+
+    // Record device session if device info is provided
+    if (deviceInfo?.deviceId) {
+      try {
+        await this.deviceSessionsService.recordSession({
+          userId: user.id,
+          deviceId: deviceInfo.deviceId,
+          platform: deviceInfo.platform,
+          appVersion: deviceInfo.appVersion,
+          deviceName: deviceInfo.deviceName,
+          osVersion: deviceInfo.osVersion,
+        });
+        
+        this.logger.log(`Device session recorded for user ${user.id}`, {
+          userId: user.id,
+          deviceId: deviceInfo.deviceId,
+          platform: deviceInfo.platform,
+        });
+      } catch (error) {
+        // Don't fail login if device session recording fails
+        this.logger.warn(`Failed to record device session: ${error.message}`, {
+          userId: user.id,
+          deviceId: deviceInfo.deviceId,
+          error: error.message,
+        });
+      }
+    }
 
     return {
       user: {
@@ -94,7 +144,7 @@ export class AuthService {
       throw new UnauthorizedException('User not found');
     }
 
-    const token = await this.generateToken(user as UserWithRoles);
+    const token = await this.generateToken(user);
     const primaryRole = user.userRoles[0]?.role?.name || 'USER';
 
     return {
@@ -111,7 +161,7 @@ export class AuthService {
       expiresIn: this.configService.get<string>('JWT_EXPIRES_IN', '24h'),
     };
   }
-  
+
   private async generateToken(user: UserWithRoles): Promise<string> {
     const primaryRole = user.userRoles[0]?.role?.name || 'USER';
     const payload = {
@@ -126,4 +176,4 @@ export class AuthService {
   async validateUser(userId: string): Promise<User> {
     return this.usersService.findById(userId, userId, { includeRoles: true });
   }
-} 
+}

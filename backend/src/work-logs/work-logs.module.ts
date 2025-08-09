@@ -10,4 +10,4 @@ import { CommonModule } from '../common/common.module';
   providers: [WorkLogsService],
   exports: [WorkLogsService],
 })
-export class WorkLogsModule {} 
+export class WorkLogsModule {}

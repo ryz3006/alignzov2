@@ -19,7 +19,10 @@ import { OrganizationsService } from './organizations.service';
 import { CreateOrganizationDto } from './dto/create-organization.dto';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { PermissionGuard, RequirePermissions } from '../common/guards/permission.guard';
+import {
+  PermissionGuard,
+  RequirePermissions,
+} from '../common/guards/permission.guard';
 
 @ApiTags('Organizations')
 @Controller('organizations')
@@ -171,4 +174,4 @@ export class OrganizationsController {
   validateDomain(@Body() body: { email: string }) {
     return this.organizationsService.validateUserDomain(body.email);
   }
-} 
+}

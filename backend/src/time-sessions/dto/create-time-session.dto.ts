@@ -1,4 +1,10 @@
-import { IsString, IsOptional, IsEnum, IsDateString, IsUUID } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsEnum,
+  IsDateString,
+  IsUUID,
+} from 'class-validator';
 
 export enum TimeSessionStatus {
   RUNNING = 'RUNNING',
@@ -55,4 +61,4 @@ export class CreateTimeSessionDto {
   @IsOptional()
   @IsString()
   ticketReference?: string;
-} 
+}

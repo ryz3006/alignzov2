@@ -2,6 +2,7 @@ import { Controller, Get } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { AppService } from './app.service';
 import { PrismaService } from './prisma/prisma.service';
+import { createClient } from 'redis';
 
 @ApiTags('Health')
 @Controller()
@@ -58,6 +59,50 @@ export class AppController {
         timestamp: new Date().toISOString(),
       };
     }
+  }
+
+  @Get('healthz')
+  @ApiOperation({ summary: 'Liveness probe' })
+  liveness() {
+    return { status: 'ok', timestamp: new Date().toISOString() };
+  }
+
+  @Get('readyz')
+  @ApiOperation({ summary: 'Readiness probe (DB/Redis)' })
+  async readiness() {
+    const result: any = {
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      checks: { db: 'unknown', redis: 'unknown' },
+    };
+
+    try {
+      await this.prisma.$queryRaw`SELECT 1`;
+      result.checks.db = 'connected';
+    } catch (e: any) {
+      result.checks.db = 'disconnected';
+      result.status = 'error';
+      result.dbError = e?.message;
+    }
+
+    const redisUrl = process.env.REDIS_URL;
+    if (redisUrl) {
+      try {
+        const client = createClient({ url: redisUrl });
+        await client.connect();
+        const pong = await client.ping();
+        result.checks.redis = pong === 'PONG' ? 'connected' : 'error';
+        await client.quit();
+      } catch (e: any) {
+        result.checks.redis = 'disconnected';
+        result.status = 'error';
+        result.redisError = e?.message;
+      }
+    } else {
+      result.checks.redis = 'not_configured';
+    }
+
+    return result;
   }
 
   @Get('health/system')

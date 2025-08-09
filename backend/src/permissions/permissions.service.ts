@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePermissionDto } from './dto/create-permission.dto';
 import { UpdatePermissionDto } from './dto/update-permission.dto';
@@ -16,7 +20,9 @@ export class PermissionsService {
     });
 
     if (existingPermission) {
-      throw new BadRequestException(`Permission for resource '${resource}' and action '${action}' already exists`);
+      throw new BadRequestException(
+        `Permission for resource '${resource}' and action '${action}' already exists`,
+      );
     }
 
     return this.prisma.permission.create({
@@ -32,10 +38,7 @@ export class PermissionsService {
           { resource: { not: 'permissions' } },
         ],
       },
-      orderBy: [
-        { resource: 'asc' },
-        { action: 'asc' },
-      ],
+      orderBy: [{ resource: 'asc' }, { action: 'asc' }],
     });
   }
 
@@ -67,7 +70,9 @@ export class PermissionsService {
       });
 
       if (existingPermission && existingPermission.id !== id) {
-        throw new BadRequestException(`Permission for resource '${resource}' and action '${action}' already exists`);
+        throw new BadRequestException(
+          `Permission for resource '${resource}' and action '${action}' already exists`,
+        );
       }
     }
 
@@ -90,7 +95,9 @@ export class PermissionsService {
     });
 
     if (rolePermissions.length > 0) {
-      throw new BadRequestException('Cannot delete permission that is assigned to roles');
+      throw new BadRequestException(
+        'Cannot delete permission that is assigned to roles',
+      );
     }
 
     // Check if permission is assigned to any users
@@ -99,7 +106,9 @@ export class PermissionsService {
     });
 
     if (userPermissions.length > 0) {
-      throw new BadRequestException('Cannot delete permission that is assigned to users');
+      throw new BadRequestException(
+        'Cannot delete permission that is assigned to users',
+      );
     }
 
     await this.prisma.permission.delete({
@@ -117,7 +126,7 @@ export class PermissionsService {
       orderBy: { resource: 'asc' },
     });
 
-    return resources.map(r => r.resource);
+    return resources.map((r) => r.resource);
   }
 
   async getActions() {
@@ -127,6 +136,6 @@ export class PermissionsService {
       orderBy: { action: 'asc' },
     });
 
-    return actions.map(a => a.action);
+    return actions.map((a) => a.action);
   }
-} 
+}

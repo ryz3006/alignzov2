@@ -1,4 +1,13 @@
-import { IsString, IsOptional, IsEnum, IsDateString, IsNumber, IsBoolean, IsUUID, IsArray } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsEnum,
+  IsDateString,
+  IsNumber,
+  IsBoolean,
+  IsUUID,
+  IsArray,
+} from 'class-validator';
 
 export enum ProjectStatus {
   PLANNING = 'PLANNING',
@@ -91,4 +100,4 @@ export class CreateProjectDto {
   @IsArray()
   @IsString({ each: true })
   sourceCategories?: string[];
-} 
+}

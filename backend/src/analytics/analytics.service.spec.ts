@@ -79,14 +79,18 @@ describe('AnalyticsService', () => {
         },
       ];
 
-      mockPrismaService.projectMember.findMany.mockResolvedValue(mockUserProjects);
+      mockPrismaService.projectMember.findMany.mockResolvedValue(
+        mockUserProjects,
+      );
       mockPrismaService.user.count.mockResolvedValue(mockTotalUsers);
       mockPrismaService.workLog.aggregate
         .mockResolvedValueOnce(mockTotalHours)
         .mockResolvedValueOnce(mockTotalRevenue);
       mockPrismaService.project.count.mockResolvedValue(mockActiveProjects);
       mockPrismaService.workLog.count.mockResolvedValue(mockTotalWorkLogs);
-      mockPrismaService.timeSession.count.mockResolvedValue(mockTotalTimeSessions);
+      mockPrismaService.timeSession.count.mockResolvedValue(
+        mockTotalTimeSessions,
+      );
       mockPrismaService.workLog.findMany.mockResolvedValue(mockRecentActivity);
 
       const result = await service.getDashboardStats(userId);
@@ -131,7 +135,9 @@ describe('AnalyticsService', () => {
         },
       ];
 
-      mockPrismaService.projectMember.findMany.mockResolvedValue(mockUserProjects);
+      mockPrismaService.projectMember.findMany.mockResolvedValue(
+        mockUserProjects,
+      );
       mockPrismaService.workLog.groupBy
         .mockResolvedValueOnce(mockTimeData)
         .mockResolvedValueOnce(mockProjectBreakdown)
@@ -213,7 +219,9 @@ describe('AnalyticsService', () => {
         },
       ];
 
-      mockPrismaService.projectMember.findMany.mockResolvedValue(mockUserProjects);
+      mockPrismaService.projectMember.findMany.mockResolvedValue(
+        mockUserProjects,
+      );
       mockPrismaService.project.findMany.mockResolvedValue(mockProjectStats);
       mockPrismaService.workLog.groupBy
         .mockResolvedValueOnce(mockProjectProgress)
@@ -260,7 +268,11 @@ describe('AnalyticsService', () => {
           members: [
             {
               userId: 'user-123',
-              user: { firstName: 'John', lastName: 'Doe', email: 'john@example.com' },
+              user: {
+                firstName: 'John',
+                lastName: 'Doe',
+                email: 'john@example.com',
+              },
               role: 'lead',
             },
           ],
@@ -322,7 +334,9 @@ describe('AnalyticsService', () => {
       const mockWorkLogs = 5;
       const mockTimeSessions = 3;
 
-      mockPrismaService.projectMember.findMany.mockResolvedValue(mockUserProjects);
+      mockPrismaService.projectMember.findMany.mockResolvedValue(
+        mockUserProjects,
+      );
       mockPrismaService.workLog.aggregate
         .mockResolvedValueOnce(mockBillableHours)
         .mockResolvedValueOnce(mockTotalHours);
@@ -342,4 +356,4 @@ describe('AnalyticsService', () => {
       });
     });
   });
-}); 
+});

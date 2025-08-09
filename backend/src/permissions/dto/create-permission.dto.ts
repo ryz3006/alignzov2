@@ -15,16 +15,24 @@ export class CreatePermissionDto {
   @IsString()
   description?: string;
 
-  @ApiProperty({ description: 'Resource this permission applies to (e.g., users, projects)' })
+  @ApiProperty({
+    description: 'Resource this permission applies to (e.g., users, projects)',
+  })
   @IsString()
   resource: string;
 
-  @ApiProperty({ description: 'Action this permission allows (e.g., create, read, update, delete)' })
+  @ApiProperty({
+    description:
+      'Action this permission allows (e.g., create, read, update, delete)',
+  })
   @IsString()
   action: string;
 
-  @ApiProperty({ description: 'Whether this is a system permission', default: false })
+  @ApiProperty({
+    description: 'Whether this is a system permission',
+    default: false,
+  })
   @IsOptional()
   @IsBoolean()
   isSystem?: boolean;
-} 
+}

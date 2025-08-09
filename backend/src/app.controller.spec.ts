@@ -75,7 +75,9 @@ describe('AppController', () => {
     });
 
     it('should return error status when database is unhealthy', async () => {
-      mockPrismaService.$queryRaw.mockRejectedValue(new Error('Connection timeout'));
+      mockPrismaService.$queryRaw.mockRejectedValue(
+        new Error('Connection timeout'),
+      );
 
       const result = await appController.getDatabaseHealth();
 

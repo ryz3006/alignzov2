@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { Prisma, Project } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProjectDto } from './dto/create-project.dto';
@@ -12,10 +16,15 @@ export class ProjectsService {
     private dataScopeService: DataScopeService,
   ) {}
 
-  async create(createProjectDto: CreateProjectDto, userId: string): Promise<Project> {
+  async create(
+    createProjectDto: CreateProjectDto,
+    userId: string,
+  ): Promise<Project> {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user || !user.organizationId) {
-      throw new ForbiddenException('User must belong to an organization to create a project.');
+      throw new ForbiddenException(
+        'User must belong to an organization to create a project.',
+      );
     }
     const { teamIds, ...projectData } = createProjectDto;
 
@@ -24,13 +33,15 @@ export class ProjectsService {
         ...projectData,
         organizationId: user.organizationId,
         ownerId: userId,
-        code: createProjectDto.code || this.generateProjectCode(createProjectDto.name),
+        code:
+          createProjectDto.code ||
+          this.generateProjectCode(createProjectDto.name),
       },
     });
 
     if (teamIds && teamIds.length > 0) {
       await this.prisma.projectTeam.createMany({
-        data: teamIds.map(teamId => ({
+        data: teamIds.map((teamId) => ({
           projectId: project.id,
           teamId,
         })),
@@ -41,8 +52,11 @@ export class ProjectsService {
   }
 
   async findAll(userId: string): Promise<Project[]> {
-    const whereScope = await this.dataScopeService.getAccessScopeWhereClause(userId, 'project');
-    
+    const whereScope = await this.dataScopeService.getAccessScopeWhereClause(
+      userId,
+      'project',
+    );
+
     const userOwnedOrMemberProjects: Prisma.ProjectWhereInput = {
       OR: [
         { ownerId: userId },
@@ -68,9 +82,12 @@ export class ProjectsService {
   }
 
   async findOne(id: string, userId: string): Promise<Project> {
-    const whereScope = await this.dataScopeService.getAccessScopeWhereClause(userId, 'project');
+    const whereScope = await this.dataScopeService.getAccessScopeWhereClause(
+      userId,
+      'project',
+    );
     const finalWhere: Prisma.ProjectWhereInput = {
-        AND: [whereScope, { id: id, isActive: true }]
+      AND: [whereScope, { id: id, isActive: true }],
     };
 
     const project = await this.prisma.project.findFirst({
@@ -84,13 +101,19 @@ export class ProjectsService {
     });
 
     if (!project) {
-      throw new NotFoundException('Project not found or you do not have access');
+      throw new NotFoundException(
+        'Project not found or you do not have access',
+      );
     }
 
     return project;
   }
 
-  async update(id: string, updateProjectDto: UpdateProjectDto, userId: string): Promise<Project> {
+  async update(
+    id: string,
+    updateProjectDto: UpdateProjectDto,
+    userId: string,
+  ): Promise<Project> {
     await this.findOne(id, userId); // Permission check
     const { teamIds, ...projectData } = updateProjectDto;
 
@@ -102,17 +125,20 @@ export class ProjectsService {
 
   async remove(id: string, userId: string): Promise<{ message: string }> {
     await this.findOne(id, userId); // Permission check
-    
+
     await this.prisma.project.update({
       where: { id },
       data: { isActive: false },
     });
-    
+
     return { message: 'Project deleted successfully' };
   }
 
   private generateProjectCode(name: string): string {
-    const code = name.toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 6);
+    const code = name
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, '')
+      .substring(0, 6);
     const timestamp = Date.now().toString().slice(-4);
     return `${code}${timestamp}`;
   }

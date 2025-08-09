@@ -10,10 +10,14 @@ export class FirebaseService implements OnModuleInit {
   constructor(private readonly configService: ConfigService) {}
 
   async onModuleInit() {
-    const serviceAccountPath = this.configService.get<string>('FIREBASE_ADMIN_SDK_PATH');
-    
+    const serviceAccountPath = this.configService.get<string>(
+      'FIREBASE_ADMIN_SDK_PATH',
+    );
+
     if (!serviceAccountPath) {
-      console.warn('FIREBASE_ADMIN_SDK_PATH not configured - Firebase authentication will be disabled');
+      console.warn(
+        'FIREBASE_ADMIN_SDK_PATH not configured - Firebase authentication will be disabled',
+      );
       return;
     }
 
@@ -22,36 +26,54 @@ export class FirebaseService implements OnModuleInit {
       const resolvedPath = path.resolve(process.cwd(), serviceAccountPath);
       console.log('Firebase service account path:', resolvedPath);
       console.log('Current working directory:', process.cwd());
-      
+
       // Read the service account file directly
       const fs = require('fs');
       if (fs.existsSync(resolvedPath)) {
         const serviceAccountContent = fs.readFileSync(resolvedPath, 'utf8');
         const serviceAccount = JSON.parse(serviceAccountContent);
-        console.log('Service account loaded successfully, project ID:', serviceAccount.project_id);
-        
+        console.log(
+          'Service account loaded successfully, project ID:',
+          serviceAccount.project_id,
+        );
+
         this.firebaseApp = admin.initializeApp({
           credential: admin.credential.cert(serviceAccount),
           projectId: this.configService.get<string>('FIREBASE_PROJECT_ID'),
         });
         console.log('Firebase Admin SDK initialized successfully');
       } else {
-        console.warn('Firebase service account file not found at:', resolvedPath);
+        console.warn(
+          'Firebase service account file not found at:',
+          resolvedPath,
+        );
         // Try alternative paths
         const alternativePaths = [
-          path.resolve(__dirname, '../../configs/firebase/dalignzo-firebase-adminsdk-fbsvc-326bf38898.json'),
-          path.resolve(process.cwd(), '../configs/firebase/dalignzo-firebase-adminsdk-fbsvc-326bf38898.json'),
-          path.resolve(process.cwd(), '../../configs/firebase/dalignzo-firebase-adminsdk-fbsvc-326bf38898.json'),
+          path.resolve(
+            __dirname,
+            '../../configs/firebase/dalignzo-firebase-adminsdk-fbsvc-326bf38898.json',
+          ),
+          path.resolve(
+            process.cwd(),
+            '../configs/firebase/dalignzo-firebase-adminsdk-fbsvc-326bf38898.json',
+          ),
+          path.resolve(
+            process.cwd(),
+            '../../configs/firebase/dalignzo-firebase-adminsdk-fbsvc-326bf38898.json',
+          ),
         ];
-        
+
         for (const altPath of alternativePaths) {
           console.log('Trying alternative path:', altPath);
           if (fs.existsSync(altPath)) {
             console.log('Found file at alternative path:', altPath);
             const serviceAccountContent = fs.readFileSync(altPath, 'utf8');
             const serviceAccount = JSON.parse(serviceAccountContent);
-            console.log('Service account loaded successfully, project ID:', serviceAccount.project_id);
-            
+            console.log(
+              'Service account loaded successfully, project ID:',
+              serviceAccount.project_id,
+            );
+
             this.firebaseApp = admin.initializeApp({
               credential: admin.credential.cert(serviceAccount),
               projectId: this.configService.get<string>('FIREBASE_PROJECT_ID'),
@@ -107,7 +129,9 @@ export class FirebaseService implements OnModuleInit {
     }
   }
 
-  async createUser(userData: admin.auth.CreateRequest): Promise<admin.auth.UserRecord> {
+  async createUser(
+    userData: admin.auth.CreateRequest,
+  ): Promise<admin.auth.UserRecord> {
     if (!this.firebaseApp) {
       throw new Error('Firebase Admin SDK not initialized');
     }
@@ -120,13 +144,18 @@ export class FirebaseService implements OnModuleInit {
     }
   }
 
-  async updateUser(uid: string, userData: admin.auth.UpdateRequest): Promise<admin.auth.UserRecord> {
+  async updateUser(
+    uid: string,
+    userData: admin.auth.UpdateRequest,
+  ): Promise<admin.auth.UserRecord> {
     if (!this.firebaseApp) {
       throw new Error('Firebase Admin SDK not initialized');
     }
 
     try {
-      const userRecord = await this.firebaseApp.auth().updateUser(uid, userData);
+      const userRecord = await this.firebaseApp
+        .auth()
+        .updateUser(uid, userData);
       return userRecord;
     } catch (error) {
       throw new Error(`Failed to update Firebase user: ${error.message}`);
@@ -172,4 +201,4 @@ export class FirebaseService implements OnModuleInit {
   isInitialized(): boolean {
     return this.firebaseApp !== null;
   }
-} 
+}

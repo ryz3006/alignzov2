@@ -9,6 +9,7 @@ import {
   UseGuards,
   Request,
   Query,
+  UseInterceptors,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -21,8 +22,15 @@ import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { PermissionGuard, RequirePermissions } from '../common/guards/permission.guard';
+import {
+  PermissionGuard,
+  RequirePermissions,
+} from '../common/guards/permission.guard';
 import { PermissionService } from '../common/services/permission.service';
+import { PaginationInterceptor } from '../common/interceptors/pagination.interceptor';
+import { EtagInterceptor } from '../common/interceptors/etag.interceptor';
+import { CachingInterceptor } from '../common/interceptors/caching.interceptor';
+import { Audit } from '../common/decorators/audit.decorator';
 
 @ApiTags('Users')
 @Controller('users')
@@ -36,6 +44,7 @@ export class UsersController {
 
   @Post()
   @RequirePermissions('users', 'create')
+  @Audit({ entity: 'User' })
   @ApiOperation({ summary: 'Create a new user' })
   create(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);
@@ -43,9 +52,13 @@ export class UsersController {
 
   @Get()
   @RequirePermissions('users', 'read')
+  @UseInterceptors(CachingInterceptor, PaginationInterceptor, EtagInterceptor)
   @ApiOperation({ summary: 'Get all users' })
   @ApiQuery({ name: 'organizationId', required: false })
-  findAll(@Query('organizationId') organizationId?: string, @Request() req?: any) {
+  findAll(
+    @Query('organizationId') organizationId?: string,
+    @Request() req?: any,
+  ) {
     return this.usersService.findAll(organizationId, req.user.id);
   }
 
@@ -78,6 +91,7 @@ export class UsersController {
 
   @Get(':id')
   @RequirePermissions('users', 'read')
+  @UseInterceptors(CachingInterceptor, EtagInterceptor)
   @ApiOperation({ summary: 'Get user by ID' })
   findOne(@Param('id') id: string, @Request() req) {
     return this.usersService.findById(id, req.user.id);
@@ -85,13 +99,19 @@ export class UsersController {
 
   @Patch(':id')
   @RequirePermissions('users', 'update')
+  @Audit({ entity: 'User', entityIdParam: 'id' })
   @ApiOperation({ summary: 'Update user' })
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto, @Request() req) {
+  update(
+    @Param('id') id: string,
+    @Body() updateUserDto: UpdateUserDto,
+    @Request() req,
+  ) {
     return this.usersService.update(id, updateUserDto);
   }
 
   @Delete(':id')
   @RequirePermissions('users', 'delete')
+  @Audit({ entity: 'User', entityIdParam: 'id' })
   @ApiOperation({ summary: 'Delete user' })
   remove(@Param('id') id: string, @Request() req) {
     return this.usersService.remove(id, req.user.id);
@@ -117,20 +137,14 @@ export class UsersController {
   @Post(':id/roles')
   @RequirePermissions('users', 'assign_role')
   @ApiOperation({ summary: 'Assign role to user' })
-  assignRole(
-    @Param('id') id: string,
-    @Body() body: { roleId: string },
-  ) {
+  assignRole(@Param('id') id: string, @Body() body: { roleId: string }) {
     return this.usersService.assignRole(id, body.roleId);
   }
 
   @Delete(':id/roles/:roleId')
   @RequirePermissions('users', 'remove_role')
   @ApiOperation({ summary: 'Remove role from user' })
-  removeRole(
-    @Param('id') id: string,
-    @Param('roleId') roleId: string,
-  ) {
+  removeRole(@Param('id') id: string, @Param('roleId') roleId: string) {
     return this.usersService.removeRole(id, roleId);
   }
 

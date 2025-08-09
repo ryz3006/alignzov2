@@ -1,4 +1,12 @@
-import { IsString, IsNumber, IsDateString, IsOptional, IsBoolean, IsArray, IsUUID } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsDateString,
+  IsOptional,
+  IsBoolean,
+  IsArray,
+  IsUUID,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateWorkLogDto {
@@ -68,7 +76,9 @@ export class CreateWorkLogDto {
   @IsString()
   workCategory?: string;
 
-  @ApiPropertyOptional({ description: 'Selected severity category from project' })
+  @ApiPropertyOptional({
+    description: 'Selected severity category from project',
+  })
   @IsOptional()
   @IsString()
   severityCategory?: string;
@@ -82,4 +92,4 @@ export class CreateWorkLogDto {
   @IsOptional()
   @IsString()
   ticketReference?: string;
-} 
+}

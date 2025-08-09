@@ -10,7 +10,10 @@ import {
   Query,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { PermissionGuard, RequirePermissions } from '../common/guards/permission.guard';
+import {
+  PermissionGuard,
+  RequirePermissions,
+} from '../common/guards/permission.guard';
 import { PermissionsService } from './permissions.service';
 import { CreatePermissionDto } from './dto/create-permission.dto';
 import { UpdatePermissionDto } from './dto/update-permission.dto';
@@ -40,7 +43,10 @@ export class PermissionsController {
 
   @Patch(':id')
   @RequirePermissions('permissions', 'update')
-  update(@Param('id') id: string, @Body() updatePermissionDto: UpdatePermissionDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updatePermissionDto: UpdatePermissionDto,
+  ) {
     return this.permissionsService.update(id, updatePermissionDto);
   }
 
@@ -61,4 +67,4 @@ export class PermissionsController {
   getActions() {
     return this.permissionsService.getActions();
   }
-} 
+}

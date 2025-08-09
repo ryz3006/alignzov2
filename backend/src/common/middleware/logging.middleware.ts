@@ -9,7 +9,8 @@ export class LoggingMiddleware implements NestMiddleware {
 
   use(req: Request, res: Response, next: NextFunction) {
     // Generate correlation ID if not present
-    const correlationId = req.headers['x-correlation-id'] as string || uuidv4();
+    const correlationId =
+      (req.headers['x-correlation-id'] as string) || uuidv4();
     req.headers['x-correlation-id'] = correlationId;
 
     // Add correlation ID to response headers
@@ -25,10 +26,10 @@ export class LoggingMiddleware implements NestMiddleware {
 
     res.send = function (body) {
       const responseTime = Date.now() - startTime;
-      
+
       // Log response
       logger.logRequest(req, responseTime, res.statusCode);
-      
+
       return originalSend.call(this, body);
     };
 
@@ -48,4 +49,4 @@ export class LoggingMiddleware implements NestMiddleware {
 
     next();
   }
-} 
+}

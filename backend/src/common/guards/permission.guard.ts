@@ -1,4 +1,9 @@
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { PrismaService } from '../../prisma/prisma.service';
 
@@ -11,7 +16,11 @@ export const PERMISSIONS_KEY = 'permissions';
 
 export const RequirePermissions = (resource: string, action: string) => {
   return (target: any, propertyKey: string, descriptor: PropertyDescriptor) => {
-    Reflect.defineMetadata(PERMISSIONS_KEY, { resource, action }, descriptor.value);
+    Reflect.defineMetadata(
+      PERMISSIONS_KEY,
+      { resource, action },
+      descriptor.value,
+    );
     return descriptor;
   };
 };
@@ -24,10 +33,11 @@ export class PermissionGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const requiredPermission = this.reflector.getAllAndOverride<PermissionMetadata>(
-      PERMISSIONS_KEY,
-      [context.getHandler(), context.getClass()],
-    );
+    const requiredPermission =
+      this.reflector.getAllAndOverride<PermissionMetadata>(PERMISSIONS_KEY, [
+        context.getHandler(),
+        context.getClass(),
+      ]);
 
     if (!requiredPermission) {
       return true; // No permissions required
@@ -42,21 +52,25 @@ export class PermissionGuard implements CanActivate {
 
     // Check if user has the required permission
     const hasPermission = await this.checkUserPermission(
-      user.id, 
-      requiredPermission.resource, 
-      requiredPermission.action
+      user.id,
+      requiredPermission.resource,
+      requiredPermission.action,
     );
 
     if (!hasPermission) {
       throw new ForbiddenException(
-        `Insufficient permissions. Required: ${requiredPermission.resource}.${requiredPermission.action}`
+        `Insufficient permissions. Required: ${requiredPermission.resource}.${requiredPermission.action}`,
       );
     }
 
     return true;
   }
 
-  private async checkUserPermission(userId: string, resource: string, action: string): Promise<boolean> {
+  private async checkUserPermission(
+    userId: string,
+    resource: string,
+    action: string,
+  ): Promise<boolean> {
     // Admin roles have implicit allow
     const isAdmin = await this.prisma.userRole.findFirst({
       where: {
@@ -93,4 +107,4 @@ export class PermissionGuard implements CanActivate {
     });
     return !!rolePermission;
   }
-} 
+}

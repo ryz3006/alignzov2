@@ -1,4 +1,10 @@
-import { IsString, IsNotEmpty, IsOptional, IsUUID, IsArray } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsUUID,
+  IsArray,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateTeamDto {
@@ -28,7 +34,8 @@ export class CreateTeamDto {
   leaderId: string;
 
   @ApiProperty({
-    description: 'Organization ID (optional - will use user\'s organization if not provided)',
+    description:
+      "Organization ID (optional - will use user's organization if not provided)",
     example: '123e4567-e89b-12d3-a456-426614174000',
     required: false,
   })
@@ -45,4 +52,4 @@ export class CreateTeamDto {
   @IsUUID('4', { each: true })
   @IsOptional()
   memberIds?: string[];
-} 
+}

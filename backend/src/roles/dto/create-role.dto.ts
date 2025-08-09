@@ -1,4 +1,11 @@
-import { IsString, IsOptional, IsEnum, IsBoolean, IsArray, IsUUID } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsEnum,
+  IsBoolean,
+  IsArray,
+  IsUUID,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateRoleDto {
@@ -15,10 +22,10 @@ export class CreateRoleDto {
   @IsString()
   description?: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Access level for the role',
     enum: ['FULL_ACCESS', 'PROJECT', 'TEAM', 'INDIVIDUAL'],
-    default: 'INDIVIDUAL'
+    default: 'INDIVIDUAL',
   })
   @IsOptional()
   @IsEnum(['FULL_ACCESS', 'PROJECT', 'TEAM', 'INDIVIDUAL'])
@@ -34,13 +41,13 @@ export class CreateRoleDto {
   @IsBoolean()
   isActive?: boolean;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Array of permission IDs to assign to this role',
     type: [String],
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsArray()
   @IsUUID('4', { each: true })
   permissions?: string[];
-} 
+}

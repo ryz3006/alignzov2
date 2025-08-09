@@ -103,9 +103,13 @@ describe('AuthController', () => {
         token: mockToken,
       });
 
-      const result = await controller.loginWithGoogle({ idToken: 'mock-firebase-token' });
+      const result = await controller.loginWithGoogle({
+        idToken: 'mock-firebase-token',
+      });
 
-      expect(mockAuthService.loginWithGoogle).toHaveBeenCalledWith('mock-firebase-token');
+      expect(mockAuthService.loginWithGoogle).toHaveBeenCalledWith(
+        'mock-firebase-token',
+      );
       expect(result).toEqual({
         user: mockUser,
         token: mockToken,
@@ -146,7 +150,10 @@ describe('AuthController', () => {
         clearCookie: jest.fn(),
       };
 
-      const result = await controller.logout({ user: { id: '1' } }, mockResponse as any);
+      const result = await controller.logout(
+        { user: { id: '1' } },
+        mockResponse as any,
+      );
 
       expect(mockAuthService.logout).toHaveBeenCalledWith('1');
       expect(mockResponse.clearCookie).toHaveBeenCalledWith('jwt_token');
@@ -178,9 +185,9 @@ describe('AuthController', () => {
 
       mockAuthService.validateUser.mockResolvedValue(mockUser);
 
-      const result = await controller.getProfile({ 
+      const result = await controller.getProfile({
         user: { id: '1' },
-        headers: { authorization: 'Bearer test-token' }
+        headers: { authorization: 'Bearer test-token' },
       });
 
       expect(mockAuthService.validateUser).toHaveBeenCalledWith('1');
@@ -283,4 +290,4 @@ describe('AuthController', () => {
       });
     });
   });
-}); 
+});

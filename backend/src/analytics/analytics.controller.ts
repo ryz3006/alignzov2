@@ -1,11 +1,10 @@
+import { Controller, Get, Query, UseGuards, Request } from '@nestjs/common';
 import {
-  Controller,
-  Get,
-  Query,
-  UseGuards,
-  Request,
-} from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { AnalyticsService } from './analytics.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -20,7 +19,10 @@ export class AnalyticsController {
 
   @Get('dashboard')
   @ApiOperation({ summary: 'Get dashboard statistics' })
-  @ApiResponse({ status: 200, description: 'Dashboard stats retrieved successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Dashboard stats retrieved successfully',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @Permissions('system.analytics')
   async getDashboardStats(@Request() req) {
@@ -29,7 +31,10 @@ export class AnalyticsController {
 
   @Get('time-tracking')
   @ApiOperation({ summary: 'Get time tracking analytics' })
-  @ApiResponse({ status: 200, description: 'Time tracking analytics retrieved successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Time tracking analytics retrieved successfully',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @Permissions('system.analytics')
   async getTimeTrackingAnalytics(@Query() query: any, @Request() req) {
@@ -38,7 +43,10 @@ export class AnalyticsController {
 
   @Get('projects')
   @ApiOperation({ summary: 'Get project analytics' })
-  @ApiResponse({ status: 200, description: 'Project analytics retrieved successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Project analytics retrieved successfully',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @Permissions('system.analytics')
   async getProjectAnalytics(@Query() query: any, @Request() req) {
@@ -47,7 +55,10 @@ export class AnalyticsController {
 
   @Get('teams')
   @ApiOperation({ summary: 'Get team analytics' })
-  @ApiResponse({ status: 200, description: 'Team analytics retrieved successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Team analytics retrieved successfully',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @Permissions('system.analytics')
   async getTeamAnalytics(@Query() query: any, @Request() req) {
@@ -56,10 +67,13 @@ export class AnalyticsController {
 
   @Get('productivity')
   @ApiOperation({ summary: 'Get productivity metrics' })
-  @ApiResponse({ status: 200, description: 'Productivity metrics retrieved successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Productivity metrics retrieved successfully',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @Permissions('system.analytics')
   async getProductivityMetrics(@Query() query: any, @Request() req) {
     return this.analyticsService.getProductivityMetrics(req.user.id, query);
   }
-} 
+}

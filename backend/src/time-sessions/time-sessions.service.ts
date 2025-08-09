@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTimeSessionDto } from './dto/create-time-session.dto';
 import { UpdateTimeSessionDto } from './dto/update-time-session.dto';
@@ -82,13 +86,7 @@ export class TimeSessionsService {
   }
 
   async findAll(userId: string, userRole: string, query: any = {}) {
-    const {
-      page = 1,
-      limit = 20,
-      status,
-      projectId,
-      search,
-    } = query;
+    const { page = 1, limit = 20, status, projectId, search } = query;
 
     const skip = (page - 1) * parseInt(limit.toString());
     const take = parseInt(limit.toString());
@@ -107,9 +105,7 @@ export class TimeSessionsService {
     }
 
     if (search) {
-      where.OR = [
-        { description: { contains: search, mode: 'insensitive' } },
-      ];
+      where.OR = [{ description: { contains: search, mode: 'insensitive' } }];
     }
 
     const [timeSessions, total] = await Promise.all([
@@ -195,12 +191,13 @@ export class TimeSessionsService {
     // Calculate the current paused duration
     const currentPausedDuration = timeSession.pausedDuration || 0;
     const pauseStartTime = new Date();
-    
+
     // Handle metadata properly
-    const currentMetadata = typeof timeSession.metadata === 'object' && timeSession.metadata !== null 
-      ? timeSession.metadata as Record<string, any>
-      : {};
-    
+    const currentMetadata =
+      typeof timeSession.metadata === 'object' && timeSession.metadata !== null
+        ? (timeSession.metadata as Record<string, any>)
+        : {};
+
     const pausedSession = await this.prisma.timeSession.update({
       where: {
         id: id,
@@ -244,12 +241,13 @@ export class TimeSessionsService {
     }
 
     // Calculate the additional paused time since last pause
-    const currentMetadata = typeof timeSession.metadata === 'object' && timeSession.metadata !== null 
-      ? timeSession.metadata as Record<string, any>
-      : {};
+    const currentMetadata =
+      typeof timeSession.metadata === 'object' && timeSession.metadata !== null
+        ? (timeSession.metadata as Record<string, any>)
+        : {};
     const pauseStartTime = currentMetadata.pauseStartTime;
     let additionalPausedTime = 0;
-    
+
     if (pauseStartTime && typeof pauseStartTime === 'string') {
       const pauseStart = new Date(pauseStartTime);
       const resumeTime = new Date();
@@ -257,7 +255,8 @@ export class TimeSessionsService {
     }
 
     // Update the total paused duration
-    const totalPausedDuration = (timeSession.pausedDuration || 0) + additionalPausedTime;
+    const totalPausedDuration =
+      (timeSession.pausedDuration || 0) + additionalPausedTime;
 
     const resumedSession = await this.prisma.timeSession.update({
       where: {
@@ -335,22 +334,29 @@ export class TimeSessionsService {
     const timeSession = await this.findOne(id, userId, 'EMPLOYEE');
 
     if (timeSession.status !== TimeSessionStatus.COMPLETED) {
-      throw new ForbiddenException('Only completed time sessions can be converted to work logs');
+      throw new ForbiddenException(
+        'Only completed time sessions can be converted to work logs',
+      );
     }
 
     if (!timeSession.endTime) {
-      throw new ForbiddenException('Time session must have an end time to be converted');
+      throw new ForbiddenException(
+        'Time session must have an end time to be converted',
+      );
     }
 
     // Calculate duration in seconds
-    const duration = Math.floor((timeSession.endTime.getTime() - timeSession.startTime.getTime()) / 1000);
+    const duration = Math.floor(
+      (timeSession.endTime.getTime() - timeSession.startTime.getTime()) / 1000,
+    );
 
     // Create work log with all the category fields using any type to bypass Prisma type issues
     const workLogData: any = {
       userId: timeSession.userId,
       projectId: timeSession.projectId,
       ticketId: timeSession.ticketId,
-      description: timeSession.description || 'Time session converted to work log',
+      description:
+        timeSession.description || 'Time session converted to work log',
       duration: duration,
       startTime: timeSession.startTime,
       endTime: timeSession.endTime,
@@ -362,11 +368,16 @@ export class TimeSessionsService {
     // Add category fields if they exist (using type assertion to access schema fields)
     const timeSessionAny = timeSession as any;
     if (timeSessionAny.module) workLogData.module = timeSessionAny.module;
-    if (timeSessionAny.taskCategory) workLogData.taskCategory = timeSessionAny.taskCategory;
-    if (timeSessionAny.workCategory) workLogData.workCategory = timeSessionAny.workCategory;
-    if (timeSessionAny.severityCategory) workLogData.severityCategory = timeSessionAny.severityCategory;
-    if (timeSessionAny.sourceCategory) workLogData.sourceCategory = timeSessionAny.sourceCategory;
-    if (timeSessionAny.ticketReference) workLogData.ticketReference = timeSessionAny.ticketReference;
+    if (timeSessionAny.taskCategory)
+      workLogData.taskCategory = timeSessionAny.taskCategory;
+    if (timeSessionAny.workCategory)
+      workLogData.workCategory = timeSessionAny.workCategory;
+    if (timeSessionAny.severityCategory)
+      workLogData.severityCategory = timeSessionAny.severityCategory;
+    if (timeSessionAny.sourceCategory)
+      workLogData.sourceCategory = timeSessionAny.sourceCategory;
+    if (timeSessionAny.ticketReference)
+      workLogData.ticketReference = timeSessionAny.ticketReference;
 
     const workLog = await this.prisma.workLog.create({
       data: workLogData,
@@ -397,13 +408,17 @@ export class TimeSessionsService {
     return workLog;
   }
 
-  async update(id: string, updateTimeSessionDto: UpdateTimeSessionDto, userId: string) {
+  async update(
+    id: string,
+    updateTimeSessionDto: UpdateTimeSessionDto,
+    userId: string,
+  ) {
     // Check if time session exists and user has access
     await this.findOne(id, userId, 'EMPLOYEE');
 
     // Prepare the update data, filtering out undefined values
     const updateData: any = {};
-    
+
     if (updateTimeSessionDto.projectId !== undefined) {
       updateData.projectId = updateTimeSessionDto.projectId;
     }
@@ -480,4 +495,4 @@ export class TimeSessionsService {
 
     return { message: 'Time session deleted successfully' };
   }
-} 
+}

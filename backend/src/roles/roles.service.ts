@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
@@ -25,13 +29,15 @@ export class RolesService {
   async findAll(includePermissions = false) {
     return this.prisma.role.findMany({
       where: { isActive: true },
-      include: includePermissions ? {
-        rolePermissions: {
-          include: {
-            permission: true,
-          },
-        },
-      } : undefined,
+      include: includePermissions
+        ? {
+            rolePermissions: {
+              include: {
+                permission: true,
+              },
+            },
+          }
+        : undefined,
       orderBy: { name: 'asc' },
     });
   }
@@ -39,13 +45,15 @@ export class RolesService {
   async findOne(id: string, includePermissions = false) {
     const role = await this.prisma.role.findUnique({
       where: { id },
-      include: includePermissions ? {
-        rolePermissions: {
-          include: {
-            permission: true,
-          },
-        },
-      } : undefined,
+      include: includePermissions
+        ? {
+            rolePermissions: {
+              include: {
+                permission: true,
+              },
+            },
+          }
+        : undefined,
     });
 
     if (!role) {
@@ -86,7 +94,7 @@ export class RolesService {
 
   async remove(id: string) {
     const role = await this.findOne(id);
-    
+
     if (role.isSystem) {
       throw new BadRequestException('Cannot delete system roles');
     }
@@ -97,7 +105,9 @@ export class RolesService {
     });
 
     if (userRoles.length > 0) {
-      throw new BadRequestException('Cannot delete role that is assigned to users');
+      throw new BadRequestException(
+        'Cannot delete role that is assigned to users',
+      );
     }
 
     await this.prisma.role.delete({
@@ -107,7 +117,10 @@ export class RolesService {
     return { message: 'Role deleted successfully' };
   }
 
-  async assignPermissions(id: string, assignPermissionsDto: AssignPermissionsDto) {
+  async assignPermissions(
+    id: string,
+    assignPermissionsDto: AssignPermissionsDto,
+  ) {
     const { permissionIds } = assignPermissionsDto;
 
     // Verify role exists
@@ -141,11 +154,14 @@ export class RolesService {
       },
     });
 
-    return rolePermissions.map(rp => rp.permission);
+    return rolePermissions.map((rp) => rp.permission);
   }
 
-  private async assignPermissionsToRole(roleId: string, permissionIds: string[]) {
-    const rolePermissions = permissionIds.map(permissionId => ({
+  private async assignPermissionsToRole(
+    roleId: string,
+    permissionIds: string[],
+  ) {
+    const rolePermissions = permissionIds.map((permissionId) => ({
       roleId,
       permissionId,
     }));
@@ -155,4 +171,4 @@ export class RolesService {
       skipDuplicates: true,
     });
   }
-} 
+}

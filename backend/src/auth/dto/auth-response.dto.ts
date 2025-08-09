@@ -65,4 +65,4 @@ export class AuthResponseDto {
     example: '24h',
   })
   expiresIn: string;
-} 
+}

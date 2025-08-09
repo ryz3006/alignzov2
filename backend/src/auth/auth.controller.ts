@@ -9,11 +9,7 @@ import {
   HttpStatus,
   Res,
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiBearerAuth,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { AuthService } from './auth.service';
 import { GoogleLoginDto } from './dto/google-login.dto';
@@ -21,6 +17,7 @@ import { AuthResponseDto } from './dto/auth-response.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { Public } from './decorators/public.decorator';
 import { User } from '@prisma/client';
+import { Throttle } from '@nestjs/throttler';
 
 type UserWithRoles = User & { userRoles: { role: { name: string } }[] };
 
@@ -31,14 +28,18 @@ export class AuthController {
 
   @Post('login/google')
   @Public()
+  @Throttle({ default: { ttl: 60_000, limit: 10 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login with Google OAuth' })
-  async loginWithGoogle(@Body() googleLoginDto: GoogleLoginDto): Promise<AuthResponseDto> {
+  async loginWithGoogle(
+    @Body() googleLoginDto: GoogleLoginDto,
+  ): Promise<AuthResponseDto> {
     return this.authService.loginWithGoogle(googleLoginDto.idToken);
   }
 
   @Post('refresh')
   @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { ttl: 60_000, limit: 30 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Refresh JWT token' })
   @ApiBearerAuth()
@@ -48,12 +49,17 @@ export class AuthController {
 
   @Post('logout')
   @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { ttl: 60_000, limit: 30 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Logout user' })
   @ApiBearerAuth()
-  async logout(@Res() res: Response): Promise<void> {
-    res.clearCookie('jwt_token');
-    res.json({ message: 'Logged out successfully' });
+  async logout(
+    @Request() req,
+    @Res() res: Response,
+  ): Promise<{ message: string }> {
+    await this.authService.logout?.(req.user.id);
+    res?.clearCookie?.('jwt_token');
+    return { message: 'Logged out successfully' };
   }
 
   @Get('me')
@@ -61,16 +67,22 @@ export class AuthController {
   @ApiOperation({ summary: 'Get current user information' })
   @ApiBearerAuth()
   async getProfile(@Request() req): Promise<any> {
-    const user = (await this.authService.validateUser(req.user.id)) as UserWithRoles;
+    const user = (await this.authService.validateUser(
+      req.user.id,
+    )) as UserWithRoles;
     const primaryRole = user.userRoles?.[0]?.role?.name || 'USER';
     return {
-      id: user.id,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      avatarUrl: user.avatar,
-      role: primaryRole,
-      organizationId: user.organizationId,
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        avatarUrl: user.avatar || undefined,
+        role: primaryRole,
+        organizationId: user.organizationId || undefined,
+      },
+      token: req.headers?.authorization?.replace('Bearer ', '') || undefined,
+      expiresIn: '24h',
     };
   }
 }

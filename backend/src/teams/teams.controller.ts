@@ -21,7 +21,10 @@ import { TeamsService } from './teams.service';
 import { CreateTeamDto } from './dto/create-team.dto';
 import { UpdateTeamDto } from './dto/update-team.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { PermissionGuard, RequirePermissions } from '../common/guards/permission.guard';
+import {
+  PermissionGuard,
+  RequirePermissions,
+} from '../common/guards/permission.guard';
 
 @ApiTags('Teams')
 @Controller('teams')
@@ -218,4 +221,4 @@ export class TeamsController {
   ) {
     return this.teamsService.removeMember(teamId, userId, req.user.id);
   }
-} 
+}

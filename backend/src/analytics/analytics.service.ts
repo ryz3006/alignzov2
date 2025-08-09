@@ -12,7 +12,7 @@ export class AnalyticsService {
       select: { projectId: true },
     });
 
-    const projectIds = userProjects.map(p => p.projectId);
+    const projectIds = userProjects.map((p) => p.projectId);
 
     const [
       totalUsers,
@@ -42,10 +42,7 @@ export class AnalyticsService {
       // Total hours tracked
       this.prisma.workLog.aggregate({
         where: {
-          OR: [
-            { userId },
-            { projectId: { in: projectIds } },
-          ],
+          OR: [{ userId }, { projectId: { in: projectIds } }],
         },
         _sum: {
           duration: true,
@@ -55,10 +52,7 @@ export class AnalyticsService {
       // Total revenue (billable hours * hourly rate)
       this.prisma.workLog.aggregate({
         where: {
-          OR: [
-            { userId },
-            { projectId: { in: projectIds } },
-          ],
+          OR: [{ userId }, { projectId: { in: projectIds } }],
           isBillable: true,
           hourlyRate: { not: null },
         },
@@ -78,30 +72,21 @@ export class AnalyticsService {
       // Total work logs
       this.prisma.workLog.count({
         where: {
-          OR: [
-            { userId },
-            { projectId: { in: projectIds } },
-          ],
+          OR: [{ userId }, { projectId: { in: projectIds } }],
         },
       }),
 
       // Total time sessions
       this.prisma.timeSession.count({
         where: {
-          OR: [
-            { userId },
-            { projectId: { in: projectIds } },
-          ],
+          OR: [{ userId }, { projectId: { in: projectIds } }],
         },
       }),
 
       // Recent activity (last 7 days)
       this.prisma.workLog.findMany({
         where: {
-          OR: [
-            { userId },
-            { projectId: { in: projectIds } },
-          ],
+          OR: [{ userId }, { projectId: { in: projectIds } }],
           createdAt: {
             gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
           },
@@ -128,8 +113,10 @@ export class AnalyticsService {
 
     return {
       totalUsers,
-      totalHours: Math.round((totalHours._sum.duration || 0) / 3600 * 100) / 100,
-      totalRevenue: Math.round((totalRevenue._sum.duration || 0) / 3600 * 100) / 100,
+      totalHours:
+        Math.round(((totalHours._sum.duration || 0) / 3600) * 100) / 100,
+      totalRevenue:
+        Math.round(((totalRevenue._sum.duration || 0) / 3600) * 100) / 100,
       activeProjects,
       totalWorkLogs,
       totalTimeSessions,
@@ -166,7 +153,7 @@ export class AnalyticsService {
 
     where.OR = [
       { userId },
-      { projectId: { in: userProjects.map(p => p.projectId) } },
+      { projectId: { in: userProjects.map((p) => p.projectId) } },
     ];
 
     // Get time tracking data grouped by the specified period
@@ -209,9 +196,9 @@ export class AnalyticsService {
     });
 
     return {
-      timeData: timeData.map(item => ({
+      timeData: timeData.map((item) => ({
         date: item.startTime,
-        hours: Math.round((item._sum.duration || 0) / 3600 * 100) / 100,
+        hours: Math.round(((item._sum.duration || 0) / 3600) * 100) / 100,
         workLogs: item._count.id,
       })),
       projectBreakdown: await Promise.all(
@@ -224,10 +211,10 @@ export class AnalyticsService {
             projectId: item.projectId,
             projectName: project?.name,
             projectCode: project?.code,
-            hours: Math.round((item._sum.duration || 0) / 3600 * 100) / 100,
+            hours: Math.round(((item._sum.duration || 0) / 3600) * 100) / 100,
             workLogs: item._count.id,
           };
-        })
+        }),
       ),
       userBreakdown: await Promise.all(
         userBreakdown.map(async (item) => {
@@ -239,10 +226,10 @@ export class AnalyticsService {
             userId: item.userId,
             userName: `${user?.firstName} ${user?.lastName}`,
             userEmail: user?.email,
-            hours: Math.round((item._sum.duration || 0) / 3600 * 100) / 100,
+            hours: Math.round(((item._sum.duration || 0) / 3600) * 100) / 100,
             workLogs: item._count.id,
           };
-        })
+        }),
       ),
     };
   }
@@ -276,14 +263,14 @@ export class AnalyticsService {
 
     where.OR = [
       { userId },
-      { projectId: { in: userProjects.map(p => p.projectId) } },
+      { projectId: { in: userProjects.map((p) => p.projectId) } },
     ];
 
     const [projectStats, projectProgress, teamPerformance] = await Promise.all([
       // Project statistics
       this.prisma.project.findMany({
         where: {
-          id: { in: userProjects.map(p => p.projectId) },
+          id: { in: userProjects.map((p) => p.projectId) },
         },
         include: {
           _count: {
@@ -328,10 +315,13 @@ export class AnalyticsService {
     ]);
 
     return {
-      projectStats: projectStats.map(project => {
-        const totalHours = project.workLogs.reduce((sum, log) => sum + (log.duration || 0), 0);
+      projectStats: projectStats.map((project) => {
+        const totalHours = project.workLogs.reduce(
+          (sum, log) => sum + (log.duration || 0),
+          0,
+        );
         const billableHours = project.workLogs
-          .filter(log => log.isBillable)
+          .filter((log) => log.isBillable)
           .reduce((sum, log) => sum + (log.duration || 0), 0);
 
         return {
@@ -341,9 +331,12 @@ export class AnalyticsService {
           status: project.status,
           totalMembers: project._count.members,
           totalWorkLogs: project._count.workLogs,
-          totalHours: Math.round(totalHours / 3600 * 100) / 100,
-          billableHours: Math.round(billableHours / 3600 * 100) / 100,
-          efficiency: project._count.workLogs > 0 ? Math.round((billableHours / totalHours) * 100) : 0,
+          totalHours: Math.round((totalHours / 3600) * 100) / 100,
+          billableHours: Math.round((billableHours / 3600) * 100) / 100,
+          efficiency:
+            project._count.workLogs > 0
+              ? Math.round((billableHours / totalHours) * 100)
+              : 0,
         };
       }),
       projectProgress: await Promise.all(
@@ -357,9 +350,9 @@ export class AnalyticsService {
             projectName: project?.name,
             projectCode: project?.code,
             date: item.startTime,
-            hours: Math.round((item._sum.duration || 0) / 3600 * 100) / 100,
+            hours: Math.round(((item._sum.duration || 0) / 3600) * 100) / 100,
           };
-        })
+        }),
       ),
       teamPerformance: await Promise.all(
         teamPerformance.map(async (item) => {
@@ -380,10 +373,10 @@ export class AnalyticsService {
             userId: item.userId,
             userName: `${user?.firstName} ${user?.lastName}`,
             userEmail: user?.email,
-            hours: Math.round((item._sum.duration || 0) / 3600 * 100) / 100,
+            hours: Math.round(((item._sum.duration || 0) / 3600) * 100) / 100,
             workLogs: item._count.id,
           };
-        })
+        }),
       ),
     };
   }
@@ -411,7 +404,7 @@ export class AnalyticsService {
       select: { teamId: true },
     });
 
-    const teamIds = userTeams.map(t => t.teamId);
+    const teamIds = userTeams.map((t) => t.teamId);
 
     if (teamId) {
       where.teamId = teamId;
@@ -487,12 +480,12 @@ export class AnalyticsService {
     ]);
 
     return {
-      teamStats: teamStats.map(team => ({
+      teamStats: teamStats.map((team) => ({
         teamId: team.id,
         teamName: team.name,
         teamDescription: team.description,
         totalMembers: team._count.members,
-        members: team.members.map(member => ({
+        members: team.members.map((member) => ({
           userId: member.userId,
           userName: `${member.user.firstName} ${member.user.lastName}`,
           userEmail: member.user.email,
@@ -509,14 +502,14 @@ export class AnalyticsService {
             userId: item.userId,
             userName: `${user?.firstName} ${user?.lastName}`,
             userEmail: user?.email,
-            hours: Math.round((item._sum.duration || 0) / 3600 * 100) / 100,
+            hours: Math.round(((item._sum.duration || 0) / 3600) * 100) / 100,
             workLogs: item._count.id,
           };
-        })
+        }),
       ),
-      teamProgress: teamProgress.map(item => ({
+      teamProgress: teamProgress.map((item) => ({
         date: item.startTime,
-        hours: Math.round((item._sum.duration || 0) / 3600 * 100) / 100,
+        hours: Math.round(((item._sum.duration || 0) / 3600) * 100) / 100,
       })),
     };
   }
@@ -550,49 +543,59 @@ export class AnalyticsService {
 
     where.OR = [
       { userId },
-      { projectId: { in: userProjects.map(p => p.projectId) } },
+      { projectId: { in: userProjects.map((p) => p.projectId) } },
     ];
 
-    const [billableHours, totalHours, workLogs, timeSessions] = await Promise.all([
-      // Billable hours
-      this.prisma.workLog.aggregate({
-        where: { ...where, isBillable: true },
-        _sum: {
-          duration: true,
-        },
-      }),
+    const [billableHours, totalHours, workLogs, timeSessions] =
+      await Promise.all([
+        // Billable hours
+        this.prisma.workLog.aggregate({
+          where: { ...where, isBillable: true },
+          _sum: {
+            duration: true,
+          },
+        }),
 
-      // Total hours
-      this.prisma.workLog.aggregate({
-        where,
-        _sum: {
-          duration: true,
-        },
-      }),
+        // Total hours
+        this.prisma.workLog.aggregate({
+          where,
+          _sum: {
+            duration: true,
+          },
+        }),
 
-      // Work logs count
-      this.prisma.workLog.count({ where }),
+        // Work logs count
+        this.prisma.workLog.count({ where }),
 
-      // Time sessions count
-      this.prisma.timeSession.count({
-        where: {
-          ...where,
-          status: 'COMPLETED',
-        },
-      }),
-    ]);
+        // Time sessions count
+        this.prisma.timeSession.count({
+          where: {
+            ...where,
+            status: 'COMPLETED',
+          },
+        }),
+      ]);
 
     const totalHoursValue = totalHours._sum.duration || 0;
     const billableHoursValue = billableHours._sum.duration || 0;
 
     return {
-      totalHours: Math.round(totalHoursValue / 3600 * 100) / 100,
-      billableHours: Math.round(billableHoursValue / 3600 * 100) / 100,
-      billablePercentage: totalHoursValue > 0 ? Math.round((billableHoursValue / totalHoursValue) * 100) : 0,
+      totalHours: Math.round((totalHoursValue / 3600) * 100) / 100,
+      billableHours: Math.round((billableHoursValue / 3600) * 100) / 100,
+      billablePercentage:
+        totalHoursValue > 0
+          ? Math.round((billableHoursValue / totalHoursValue) * 100)
+          : 0,
       totalWorkLogs: workLogs,
       completedTimeSessions: timeSessions,
-      averageSessionLength: timeSessions > 0 ? Math.round(totalHoursValue / timeSessions / 3600 * 100) / 100 : 0,
-      efficiency: totalHoursValue > 0 ? Math.round((billableHoursValue / totalHoursValue) * 100) : 0,
+      averageSessionLength:
+        timeSessions > 0
+          ? Math.round((totalHoursValue / timeSessions / 3600) * 100) / 100
+          : 0,
+      efficiency:
+        totalHoursValue > 0
+          ? Math.round((billableHoursValue / totalHoursValue) * 100)
+          : 0,
     };
   }
-} 
+}

@@ -16,19 +16,31 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     super({
       clientID: clientID || 'mock-client-id',
       clientSecret: clientSecret || 'mock-client-secret',
-      callbackURL: callbackURL || `${process.env.API_URL || 'http://localhost:3001'}/api/auth/login/google/callback`,
+      callbackURL:
+        callbackURL ||
+        `${process.env.API_URL || 'http://localhost:3001'}/api/auth/login/google/callback`,
       scope: ['email', 'profile'],
       passReqToCallback: false,
     });
 
     // Check if Google OAuth credentials are properly configured
-    this.isConfigured = !!(clientID && clientID !== 'your_google_client_id_here' && 
-                           clientSecret && clientSecret !== 'your_google_client_secret_here');
+    this.isConfigured = !!(
+      clientID &&
+      clientID !== 'your_google_client_id_here' &&
+      clientSecret &&
+      clientSecret !== 'your_google_client_secret_here'
+    );
 
     if (!this.isConfigured) {
-      console.warn('⚠️  Google OAuth credentials not configured. Google authentication will be disabled.');
-      console.warn('   Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in your environment variables.');
-      console.warn('   For development, you can use mock credentials or set up a Google OAuth application.');
+      console.warn(
+        '⚠️  Google OAuth credentials not configured. Google authentication will be disabled.',
+      );
+      console.warn(
+        '   Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in your environment variables.',
+      );
+      console.warn(
+        '   For development, you can use mock credentials or set up a Google OAuth application.',
+      );
     }
   }
 
@@ -45,7 +57,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       }
 
       const { name, emails, photos } = profile;
-      
+
       const user = {
         email: emails[0].value,
         firstName: name.givenName,
@@ -60,4 +72,4 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       done(error, false);
     }
   }
-} 
+}

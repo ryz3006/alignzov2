@@ -1,4 +1,10 @@
-import { IsEmail, IsString, IsOptional, IsBoolean, IsUUID } from 'class-validator';
+import {
+  IsEmail,
+  IsString,
+  IsOptional,
+  IsBoolean,
+  IsUUID,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateUserDto {
@@ -136,8 +142,8 @@ export class CreateUserDto {
       {
         projectId: '123e4567-e89b-12d3-a456-426614174000',
         reportingToId: '123e4567-e89b-12d3-a456-426614174001',
-        role: 'member'
-      }
+        role: 'member',
+      },
     ],
     required: false,
   })
@@ -147,4 +153,4 @@ export class CreateUserDto {
     reportingToId?: string;
     role?: string;
   }>;
-} 
+}

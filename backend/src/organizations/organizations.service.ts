@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateOrganizationDto } from './dto/create-organization.dto';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
@@ -22,7 +27,9 @@ export class OrganizationsService {
     });
 
     if (existingOrg) {
-      throw new ConflictException(`Organization with domain "${normalizedDomain}" already exists`);
+      throw new ConflictException(
+        `Organization with domain "${normalizedDomain}" already exists`,
+      );
     }
 
     return this.prisma.organization.create({
@@ -115,7 +122,7 @@ export class OrganizationsService {
     // If domain is being updated, check for conflicts
     if (domain) {
       const normalizedDomain = this.normalizeDomain(domain);
-      
+
       const conflictingOrg = await this.prisma.organization.findFirst({
         where: {
           domain: normalizedDomain,
@@ -125,7 +132,9 @@ export class OrganizationsService {
       });
 
       if (conflictingOrg) {
-        throw new ConflictException(`Organization with domain "${normalizedDomain}" already exists`);
+        throw new ConflictException(
+          `Organization with domain "${normalizedDomain}" already exists`,
+        );
       }
 
       updateOrganizationDto.domain = normalizedDomain;
@@ -157,9 +166,13 @@ export class OrganizationsService {
     }
 
     // Check if organization has any users, teams, or projects
-    if (organization._count.users > 0 || organization._count.teams > 0 || organization._count.projects > 0) {
+    if (
+      organization._count.users > 0 ||
+      organization._count.teams > 0 ||
+      organization._count.projects > 0
+    ) {
       throw new BadRequestException(
-        `Cannot delete organization. It has ${organization._count.users} users, ${organization._count.teams} teams, and ${organization._count.projects} projects.`
+        `Cannot delete organization. It has ${organization._count.users} users, ${organization._count.teams} teams, and ${organization._count.projects} projects.`,
       );
     }
 
@@ -171,7 +184,7 @@ export class OrganizationsService {
 
   async findByDomain(domain: string) {
     const normalizedDomain = this.normalizeDomain(domain);
-    
+
     return this.prisma.organization.findFirst({
       where: {
         domain: normalizedDomain,
@@ -192,7 +205,9 @@ export class OrganizationsService {
     }
 
     if (!organization) {
-      throw new NotFoundException(`Organization with ID ${organizationId} not found`);
+      throw new NotFoundException(
+        `Organization with ID ${organizationId} not found`,
+      );
     }
 
     return this.prisma.user.update({
@@ -204,12 +219,15 @@ export class OrganizationsService {
   async validateUserDomain(email: string) {
     const domain = this.extractDomain(email);
     const organization = await this.findByDomain(domain);
-    
+
     return organization; // Return null if no organization found
   }
 
   private normalizeDomain(domain: string): string {
-    return domain.toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '');
+    return domain
+      .toLowerCase()
+      .replace(/^https?:\/\//, '')
+      .replace(/^www\./, '');
   }
 
   private extractDomain(email: string): string {
@@ -219,4 +237,4 @@ export class OrganizationsService {
     }
     return this.normalizeDomain(parts[1]);
   }
-} 
+}

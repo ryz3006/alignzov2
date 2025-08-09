@@ -27,54 +27,20 @@ export class LoggerService implements NestLoggerService {
       winston.format.timestamp(),
       winston.format.errors({ stack: true }),
       winston.format.json(),
-      winston.format.printf(({ timestamp, level, message, ...meta }) => {
-        return JSON.stringify({
-          timestamp,
-          level,
-          message,
-          ...meta,
-        });
-      })
     );
 
     const consoleFormat = winston.format.combine(
       winston.format.colorize(),
       winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
       winston.format.printf(({ timestamp, level, message, ...meta }) => {
-        const metaStr = Object.keys(meta).length ? ` ${JSON.stringify(meta)}` : '';
+        const metaStr = Object.keys(meta).length
+          ? ` ${JSON.stringify(meta)}`
+          : '';
         return `${timestamp} [${level}]: ${message}${metaStr}`;
-      })
+      }),
     );
 
-    // File transport for all logs
-    const allLogsTransport = new DailyRotateFile({
-      filename: 'logs/app-%DATE%.log',
-      datePattern: 'YYYY-MM-DD',
-      zippedArchive: true,
-      maxSize: '20m',
-      maxFiles: '14d',
-      level: 'info',
-    });
-
-    // File transport for error logs only
-    const errorLogsTransport = new DailyRotateFile({
-      filename: 'logs/error-%DATE%.log',
-      datePattern: 'YYYY-MM-DD',
-      zippedArchive: true,
-      maxSize: '20m',
-      maxFiles: '30d',
-      level: 'error',
-    });
-
-    // File transport for debug logs
-    const debugLogsTransport = new DailyRotateFile({
-      filename: 'logs/debug-%DATE%.log',
-      datePattern: 'YYYY-MM-DD',
-      zippedArchive: true,
-      maxSize: '20m',
-      maxFiles: '7d',
-      level: 'debug',
-    });
+    const isProduction = process.env.NODE_ENV === 'production';
 
     this.logger = winston.createLogger({
       level: process.env.LOG_LEVEL || 'info',
@@ -83,43 +49,28 @@ export class LoggerService implements NestLoggerService {
         service: 'alignzo-backend',
         environment: process.env.NODE_ENV || 'development',
       },
-      transports: [
-        allLogsTransport,
-        errorLogsTransport,
-        debugLogsTransport,
-      ],
+      transports: [],
     });
 
-    // Add console transport for development
-    if (process.env.NODE_ENV !== 'production') {
+    // Console transport
+    if (!isProduction) {
       this.logger.add(
         new winston.transports.Console({
           format: consoleFormat,
           level: 'debug',
-        })
+        }),
+      );
+    } else {
+      // JSON to stdout in production
+      this.logger.add(
+        new winston.transports.Console({
+          format: logFormat,
+          level: process.env.LOG_LEVEL || 'info',
+        }),
       );
     }
 
-    // Handle uncaught exceptions and unhandled rejections
-    this.logger.exceptions.handle(
-      new DailyRotateFile({
-        filename: 'logs/exceptions-%DATE%.log',
-        datePattern: 'YYYY-MM-DD',
-        zippedArchive: true,
-        maxSize: '20m',
-        maxFiles: '30d',
-      })
-    );
-
-    this.logger.rejections.handle(
-      new DailyRotateFile({
-        filename: 'logs/rejections-%DATE%.log',
-        datePattern: 'YYYY-MM-DD',
-        zippedArchive: true,
-        maxSize: '20m',
-        maxFiles: '30d',
-      })
-    );
+    // In production, do not write logs to files
   }
 
   log(message: string, context?: LogContext) {
@@ -224,4 +175,4 @@ export class LoggerService implements NestLoggerService {
       eventType: 'security',
     });
   }
-} 
+}
