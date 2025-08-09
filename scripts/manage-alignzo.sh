@@ -82,14 +82,26 @@ if ! [[ "$FRONTEND_PORT" =~ ^[0-9]+$ ]]; then FRONTEND_PORT=""; fi
 : "${FRONTEND_PORT:=3000}"
 : "${API_URL:=http://localhost:${BACKEND_PORT}}"
 
-# Do not export PORT globally; pass per-process to avoid leaking to frontend
-export NEXT_PUBLIC_API_URL="$API_URL"
+# Do not export API URL globally; frontend now reads from frontend/config/config.json via next.config.ts
 
 # Compose commands
 BACKEND_CMD_DEV=(bash -lc "cd backend && PORT=$BACKEND_PORT NODE_ENV=development npm run dev")
-FRONTEND_CMD_DEV=(bash -lc "cd frontend && PORT=$FRONTEND_PORT NODE_ENV=development NEXT_PUBLIC_API_URL='$API_URL' npm run dev")
+FRONTEND_CMD_DEV=(bash -lc "cd frontend && PORT=$FRONTEND_PORT NODE_ENV=development npm run dev")
 BACKEND_CMD_PROD=(bash -lc "cd backend && PORT=$BACKEND_PORT NODE_ENV=production npm run start:prod")
-FRONTEND_CMD_PROD=(bash -lc "cd frontend && PORT=$FRONTEND_PORT NODE_ENV=production NEXT_PUBLIC_API_URL='$API_URL' npm run start")
+FRONTEND_CMD_PROD=(bash -lc "cd frontend && PORT=$FRONTEND_PORT NODE_ENV=production npm run start")
+
+# Helper: determine if frontend needs rebuild based on config or next config changes
+needs_frontend_build() {
+  local build_id_file="$ROOT_DIR/frontend/.next/BUILD_ID"
+  # If no build, we need one
+  [[ ! -f "$build_id_file" ]] && return 0
+  local t_build t_cfg t_nextcfg
+  t_build=$(stat -c %Y "$build_id_file" 2>/dev/null || echo 0)
+  t_cfg=$(stat -c %Y "$ROOT_DIR/frontend/config/config.json" 2>/dev/null || echo 0)
+  t_nextcfg=$(stat -c %Y "$ROOT_DIR/frontend/next.config.ts" 2>/dev/null || echo 0)
+  # Rebuild if config files are newer than last build
+  [[ "$t_cfg" -gt "$t_build" || "$t_nextcfg" -gt "$t_build" ]]
+}
 
 start_procs() {
   local log_target="/dev/stdout"
@@ -181,10 +193,10 @@ case "$ACTION" in
         echo "Backend build artifacts missing. Building backend..."
         ( cd "$ROOT_DIR/backend" && npm run build )
       fi
-      # Frontend build check
-      if [[ ! -f "$ROOT_DIR/frontend/.next/BUILD_ID" ]]; then
-        echo "Frontend build artifacts missing. Building frontend..."
-        ( cd "$ROOT_DIR/frontend" && npm run build )
+      # Frontend build check or rebuild if config changed
+      if [[ ! -f "$ROOT_DIR/frontend/.next/BUILD_ID" ]] || needs_frontend_build; then
+        echo "(Re)building frontend due to config change or missing build..."
+        ( cd "$ROOT_DIR/frontend" && rm -rf .next && npm run build )
       fi
     fi
     start_procs ;;
@@ -196,9 +208,9 @@ case "$ACTION" in
         echo "Backend build artifacts missing. Building backend..."
         ( cd "$ROOT_DIR/backend" && npm run build )
       fi
-      if [[ ! -f "$ROOT_DIR/frontend/.next/BUILD_ID" ]]; then
-        echo "Frontend build artifacts missing. Building frontend..."
-        ( cd "$ROOT_DIR/frontend" && npm run build )
+      if [[ ! -f "$ROOT_DIR/frontend/.next/BUILD_ID" ]] || needs_frontend_build; then
+        echo "(Re)building frontend due to config change or missing build..."
+        ( cd "$ROOT_DIR/frontend" && rm -rf .next && npm run build )
       fi
     fi
     start_procs ;;
