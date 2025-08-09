@@ -30,12 +30,25 @@ export class ValidatedConfigService {
     }
     this.env = parsed.data;
 
+    // Best-effort secret loading from Vault; skip if not configured
     this.loadSecrets();
   }
 
   private async loadSecrets() {
-    const secrets = await this.vaultService.readSecret('secret/data/alignzo');
-    Object.assign(this.env, secrets);
+    try {
+      const hasVaultConfig = !!process.env.VAULT_ADDR && !!process.env.VAULT_TOKEN;
+      if (!hasVaultConfig) {
+        return; // Vault not configured in this environment
+      }
+      const secrets = await this.vaultService.readSecret('secret/data/alignzo');
+      if (secrets && typeof secrets === 'object') {
+        Object.assign(this.env, secrets);
+      }
+    } catch (error) {
+      // Do not block application startup if Vault is unavailable
+      // eslint-disable-next-line no-console
+      console.warn('Vault secrets load skipped:', (error as Error)?.message || error);
+    }
   }
 
   get<T extends keyof AppEnv>(key: T): AppEnv[T] {

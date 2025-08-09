@@ -114,8 +114,12 @@ async function bootstrap() {
 
   const mode = configService.get('NODE_ENV');
   logger.log(`🚀 Backend starting in: ${mode.toUpperCase()} mode`);
-  logger.log(`🌐 Backend URL: http://localhost:${port}`);
-  logger.log(`📚 API Documentation: http://localhost:${port}/api/v1/docs`);
+  try {
+    logger.log(`🌐 Backend URL: http://localhost:${port}`);
+    logger.log(`📚 API Documentation: http://localhost:${port}/api/v1/docs`);
+  } catch (e) {
+    // noop if logger not ready
+  }
 }
 
 bootstrap().catch((err) => {
