@@ -13,7 +13,23 @@ function Get-DatabaseUrl {
   $dbUrl = ''
   try {
     if (Test-Path $cfgPath) {
-      $nodeCmd = "const fs=require('fs');const p=process.argv[1];const cfg=JSON.parse(fs.readFileSync(p,'utf8'));const b=cfg.database||(cfg.backend&&cfg.backend.database)||{};console.log(b.url||'');"
+      $nodeCmd = @"
+const fs=require('fs');
+const p=process.argv[1];
+const cfg=JSON.parse(fs.readFileSync(p,'utf8'));
+const b=cfg.database||(cfg.backend&&cfg.backend.database)||{};
+let url=b.url&&b.url.trim();
+if(!url){
+  const user=(b.username||'postgres').toString();
+  const pass=b.password? encodeURIComponent(b.password.toString()) : '';
+  const host=(b.host||'localhost').toString();
+  const port=(b.port||5432).toString();
+  const name=(b.name||'postgres').toString();
+  const auth = pass? `${user}:${pass}` : user;
+  url = `postgresql://${auth}@${host}:${port}/${name}`;
+}
+console.log(url);
+"@
       $dbUrl = node -e $nodeCmd $cfgPath | Select-Object -First 1
     }
   } catch {}

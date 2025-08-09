@@ -7,7 +7,23 @@ cd "$ROOT_DIR"
 get_database_url() {
   local cfg="$ROOT_DIR/backend/config/config.json"
   if [[ -f "$cfg" ]]; then
-    node -e 'const fs=require("fs");const p=process.argv[1];const c=JSON.parse(fs.readFileSync(p,"utf8"));const b=c.database||(c.backend&&c.backend.database)||{};process.stdout.write(b.url||"");' "$cfg"
+    node -e '
+      const fs=require("fs");
+      const p=process.argv[1];
+      const c=JSON.parse(fs.readFileSync(p,"utf8"));
+      const b=c.database||(c.backend&&c.backend.database)||{};
+      let url=b.url&&b.url.trim();
+      if(!url){
+        const user=(b.username||"postgres").toString();
+        const pass=b.password? encodeURIComponent(b.password.toString()) : "";
+        const host=(b.host||"localhost").toString();
+        const port=(b.port||5432).toString();
+        const name=(b.name||"postgres").toString();
+        const auth = pass? `${user}:${pass}` : user;
+        url = `postgresql://${auth}@${host}:${port}/${name}`;
+      }
+      process.stdout.write(url);
+    ' "$cfg"
     return
   fi
   if [[ -f "$ROOT_DIR/backend/.env" ]]; then
