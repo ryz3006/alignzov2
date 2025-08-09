@@ -176,4 +176,27 @@ export class AuthService {
   async validateUser(userId: string): Promise<User> {
     return this.usersService.findById(userId, userId, { includeRoles: true });
   }
+
+  async logout(userId: string): Promise<void> {
+    try {
+      // Invalidate any active user sessions
+      await this.prisma.userSession.updateMany({
+        where: {
+          userId: userId,
+          isActive: true,
+        },
+        data: {
+          isActive: false,
+        },
+      });
+
+      // Deactivate device sessions
+      await this.deviceSessionsService.revokeAllSessions(userId);
+
+      this.logger.log(`User ${userId} logged out successfully`);
+    } catch (error) {
+      this.logger.error(`Failed to logout user ${userId}: ${error.message}`);
+      throw error;
+    }
+  }
 }

@@ -6,8 +6,7 @@ import {
   BadRequestException,
   ConflictException,
 } from '@nestjs/common';
-import { Observable, of } from 'rxjs';
-import { tap, catchError } from 'rxjs/operators';
+import { Observable, of, tap, catchError } from 'rxjs';
 import { Request, Response } from 'express';
 import { IdempotencyService } from '../services/idempotency.service';
 import { LoggerService } from '../services/logger.service';

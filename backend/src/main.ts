@@ -7,7 +7,7 @@ import { AppModule } from './app.module';
 import { LoggingMiddleware } from './common/middleware/logging.middleware';
 import { LoggerService } from './common/services/logger.service';
 import { ValidatedConfigService } from './config/config.service';
-import './tracing'; // Import OpenTelemetry tracer
+// import './tracing'; // Import OpenTelemetry tracer - disabled for now
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -28,7 +28,7 @@ async function bootstrap() {
   app.useLogger(logger);
 
   // CORS configuration
-  const corsOriginString = configService.get<string>('CORS_ORIGIN');
+  const corsOriginString = configService.get('CORS_ORIGIN');
   const corsOrigins = corsOriginString
     ? corsOriginString.split(',').map((origin) => origin.trim())
     : [

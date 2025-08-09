@@ -520,6 +520,15 @@ model AuditLog {
   @@map("audit_logs")
 }
 
+model DailyAuditHash {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  date      DateTime  @unique @db.Date
+  hash      String
+  createdAt DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@map("daily_audit_hashes")
+}
+
 model ImportSession {
   id               String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId           String        @db.Uuid

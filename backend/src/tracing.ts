@@ -4,11 +4,13 @@ import { Resource } from '@opentelemetry/resources';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
 import { SimpleSpanProcessor } from '@opentelemetry/sdk-trace-node';
 
+const resource = new Resource({
+  [SemanticResourceAttributes.SERVICE_NAME]: 'alignzo-backend',
+  [SemanticResourceAttributes.SERVICE_VERSION]: '1.0.0',
+});
+
 const sdk = new NodeSDK({
-  resource: new Resource({
-    [SemanticResourceAttributes.SERVICE_NAME]: 'alignzo-backend',
-    [SemanticResourceAttributes.SERVICE_VERSION]: '1.0.0',
-  }),
+  resource,
   spanProcessor: new SimpleSpanProcessor(new OTLPTraceExporter()),
 });
 

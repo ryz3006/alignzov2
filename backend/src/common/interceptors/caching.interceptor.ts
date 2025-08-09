@@ -4,8 +4,7 @@ import {
   ExecutionContext,
   CallHandler,
 } from '@nestjs/common';
-import { Observable, of } from 'rxjs';
-import { tap } from 'rxjs/operators';
+import { Observable, of, tap } from 'rxjs';
 import { Request } from 'express';
 import { CacheService } from '../services/cache.service';
 import { LoggerService } from '../services/logger.service';

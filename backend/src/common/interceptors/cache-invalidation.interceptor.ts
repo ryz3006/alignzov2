@@ -4,8 +4,7 @@ import {
   Injectable,
   NestInterceptor,
 } from '@nestjs/common';
-import { Observable } from 'rxjs';
-import { tap } from 'rxjs/operators';
+import { Observable, tap } from 'rxjs';
 import { Request } from 'express';
 import { CacheService } from '../services/cache.service';
 import { LoggerService } from '../services/logger.service';

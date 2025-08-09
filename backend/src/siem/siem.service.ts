@@ -24,7 +24,7 @@ try {
 
 @Injectable()
 export class SiemService implements OnModuleInit {
-  private readonly client: Client;
+  private readonly client: any;
   private readonly isEnabled: boolean;
   private readonly indexName: string;
 
