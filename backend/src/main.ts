@@ -17,6 +17,7 @@ async function bootstrap() {
   console.log('=== BOOTSTRAP START ===');
   
   console.log('Creating NestJS app...');
+  console.log('About to call NestFactory.create(AppModule)...');
   let app;
   try {
     app = await NestFactory.create(AppModule, {
@@ -29,6 +30,8 @@ async function bootstrap() {
     console.error('=== APP CREATION FAILED ===');
     console.error('Error during NestFactory.create():', appCreationError?.message);
     console.error('Stack:', appCreationError?.stack);
+    console.error('Error name:', appCreationError?.name);
+    console.error('Full error object:', JSON.stringify(appCreationError, null, 2));
     throw appCreationError;
   }
 
