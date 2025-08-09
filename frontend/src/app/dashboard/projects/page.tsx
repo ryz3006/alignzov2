@@ -637,7 +637,7 @@ function ProjectsPageContent() {
 
         {/* Project Form Modal */}
         <ProjectForm
-          project={selectedProject}
+          project={selectedProject ?? undefined}
           isOpen={isFormOpen}
           onClose={() => setIsFormOpen(false)}
           onSuccess={handleFormSuccess}
@@ -645,7 +645,7 @@ function ProjectsPageContent() {
 
         {/* Project View Modal */}
         <ProjectViewModal
-          project={selectedProject}
+          project={selectedProject ?? undefined}
           isOpen={isViewModalOpen}
           onClose={handleViewModalClose}
         />

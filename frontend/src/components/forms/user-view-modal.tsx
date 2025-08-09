@@ -28,7 +28,7 @@ interface User {
   }>;
   projectMembers?: Array<{
     id: string;
-    projectId: string;
+    projectId?: string;
     role: string;
     reportingToId?: string;
     project: {
@@ -38,8 +38,8 @@ interface User {
     };
     reportingTo?: {
       id: string;
-      firstName: string;
-      lastName: string;
+      firstName?: string;
+      lastName?: string;
       displayName?: string;
     };
   }>;

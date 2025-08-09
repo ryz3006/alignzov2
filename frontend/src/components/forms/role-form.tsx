@@ -12,7 +12,7 @@ interface Role {
   name: string;
   displayName: string;
   description?: string;
-  level: 'FULL_ACCESS' | 'PROJECT' | 'TEAM' | 'INDIVIDUAL';
+  level?: 'FULL_ACCESS' | 'PROJECT' | 'TEAM' | 'INDIVIDUAL';
   isSystem: boolean;
   isActive: boolean;
   rolePermissions?: Array<{

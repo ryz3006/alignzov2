@@ -609,7 +609,7 @@ function UsersPageContent() {
 
         {/* User Form Modal */}
         <UserForm
-          user={selectedUser}
+          user={selectedUser ?? undefined}
           isOpen={isFormOpen}
           onClose={() => setIsFormOpen(false)}
           onSuccess={handleFormSuccess}

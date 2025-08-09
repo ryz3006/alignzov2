@@ -20,7 +20,7 @@ const projectSchema = z.object({
   priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
-  budget: z.string().optional().transform((val) => val === '' ? undefined : Number(val)),
+  budget: z.string().optional(),
   currency: z.string().optional(),
   clientName: z.string().optional(),
   ownerId: z.string().min(1, 'Project owner is required'),
@@ -106,7 +106,7 @@ export function ProjectForm({ project, isOpen, onClose, onSuccess }: ProjectForm
       priority: 'MEDIUM',
       startDate: '',
       endDate: '',
-      budget: undefined,
+      budget: '',
       currency: 'USD',
       clientName: '',
       ownerId: '',
@@ -201,7 +201,7 @@ export function ProjectForm({ project, isOpen, onClose, onSuccess }: ProjectForm
       // Convert ISO dates to YYYY-MM-DD format for date inputs
       setValue('startDate', project.startDate ? new Date(project.startDate).toISOString().split('T')[0] : '');
       setValue('endDate', project.endDate ? new Date(project.endDate).toISOString().split('T')[0] : '');
-      setValue('budget', project.budget);
+      setValue('budget', typeof project.budget === 'number' ? String(project.budget) : '');
       setValue('currency', project.currency);
       setValue('clientName', project.clientName || '');
       setValue('ownerId', project.ownerId);
@@ -237,6 +237,7 @@ export function ProjectForm({ project, isOpen, onClose, onSuccess }: ProjectForm
         // Convert date strings to ISO-8601 format
         startDate: data.startDate ? new Date(data.startDate).toISOString() : undefined,
         endDate: data.endDate ? new Date(data.endDate).toISOString() : undefined,
+        budget: data.budget && data.budget !== '' ? Number(data.budget) : undefined,
       };
 
       if (project) {

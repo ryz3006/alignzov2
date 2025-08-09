@@ -10,7 +10,7 @@ interface SmartActionButtonProps {
   onEdit: () => void;
   onView: () => void;
   className?: string;
-  variant?: 'ghost' | 'outline' | 'default';
+  variant?: 'ghost' | 'outline' | 'primary' | 'secondary' | 'danger';
   size?: 'sm' | 'md' | 'lg';
 }
 
