@@ -21,12 +21,6 @@ export class PrismaService
             ? (['query', 'info', 'warn', 'error'] as const)
             : (['error'] as const),
         errorFormat: 'pretty' as const,
-        // Add connection timeout to prevent hanging
-        __internal: {
-          engine: {
-            enableRawQueries: true,
-          },
-        },
       });
       console.log('Prisma client initialized successfully');
     } catch (error) {
