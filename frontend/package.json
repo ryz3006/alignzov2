@@ -12,6 +12,7 @@
     "test:coverage": "jest --coverage"
   },
   "dependencies": {
+    "@tailwindcss/postcss": "^4",
     "@headlessui/react": "^2.2.7",
     "@heroicons/react": "^2.2.0",
     "@hookform/resolvers": "^5.2.1",
@@ -27,12 +28,12 @@
     "react-hook-form": "^7.62.0",
     "react-hot-toast": "^2.5.2",
     "tailwind-merge": "^3.3.1",
+    "tailwindcss": "^4",
     "zod": "^3.25.76",
     "zustand": "^5.0.7"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
-    "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.6.4",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
@@ -43,7 +44,6 @@
     "eslint-config-next": "15.4.5",
     "jest": "^30.0.5",
     "jest-environment-jsdom": "^30.0.5",
-    "tailwindcss": "^4",
     "typescript": "^5"
   }
 }
