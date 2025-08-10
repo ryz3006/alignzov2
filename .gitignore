@@ -360,7 +360,6 @@ profile/
 # PROJECT SPECIFIC IGNORES
 # ================================
 # Alignzo specific ignores
-uploads/
 exports/
 imports/
 backups/

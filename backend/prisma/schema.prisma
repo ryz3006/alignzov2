@@ -860,3 +860,15 @@ enum ShiftStatus {
   CANCELLED
   NO_SHOW
 }
+
+model Cache {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  key       String   @unique
+  value     String
+  expiresAt DateTime @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([key], map: "idx_cache_key")
+  @@index([expiresAt], map: "idx_cache_expires_at")
+  @@map("cache")
+}

@@ -95,7 +95,7 @@ export class AppController {
         await client.quit();
       } catch (e: any) {
         result.checks.redis = 'disconnected';
-        result.status = 'error';
+        // Don't fail readiness check for Redis - it's optional
         result.redisError = e?.message;
       }
     } else {
