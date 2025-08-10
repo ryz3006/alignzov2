@@ -22,9 +22,7 @@ export class PrismaService
   }
 
   async onModuleInit() {
-    // Skip database connection during startup to prevent hanging
-    // The connection will be established on first use
-    console.log('PrismaService: Skipping connection during startup for faster boot');
+    await this.$connect();
   }
 
   async onModuleDestroy() {

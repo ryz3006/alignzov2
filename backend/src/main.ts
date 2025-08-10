@@ -13,98 +13,18 @@ import * as path from 'path';
 
 const cookieParser = require('cookie-parser');
 
-// Add early error detection
-console.log('=== MODULE IMPORTS COMPLETED ===');
-console.log('All imports loaded successfully');
-
 async function bootstrap() {
-  console.log('Starting app creation...');
-  console.log('Current working directory:', process.cwd());
-  console.log('Node version:', process.version);
-  console.log('NODE_ENV:', process.env.NODE_ENV);
-  
-  let app;
-  try {
-    console.log('About to create NestJS app...');
-    console.log('AppModule type:', typeof AppModule);
-    console.log('AppModule constructor:', AppModule.constructor.name);
-    
-    console.log('About to call NestFactory.create...');
-    
-    // Test with a minimal module first
-    console.log('Testing with minimal module...');
-    const MinimalModule = {
-      imports: [],
-      controllers: [],
-      providers: [],
-    };
-    
-    console.log('MinimalModule created:', typeof MinimalModule);
-    console.log('About to call NestFactory.create with minimal module...');
-    
-    try {
-      console.log('Creating minimal app...');
-      const minimalApp = await NestFactory.create(MinimalModule as any, {
-        logger: false,
-      });
-      console.log('Minimal app created successfully');
-      console.log('Closing minimal app...');
-      await minimalApp.close();
-      console.log('Minimal module test successful');
-    } catch (minimalError) {
-      console.error('Minimal module test failed:');
-      console.error('Error name:', minimalError.name);
-      console.error('Error message:', minimalError.message);
-      console.error('Error stack:', minimalError.stack);
-      throw minimalError; // Re-throw to see the full error
-    }
-    
-    // Now try the real module
-    console.log('Testing with real AppModule...');
-    const createPromise = NestFactory.create(AppModule, {
-      // Disable built-in logger to allow our custom logger to take over
-      // once the config is validated and loaded.
-      logger: false,
-    });
-    
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('NestFactory.create timed out after 30 seconds')), 30000);
-    });
-    
-    app = await Promise.race([createPromise, timeoutPromise]);
-    console.log('NestFactory.create completed successfully');
-    console.log('App created successfully, getting services...');
-  } catch (error) {
-    console.error('FATAL: Failed to create NestJS app');
-    console.error('Error name:', error.name);
-    console.error('Error message:', error.message);
-    console.error('Error stack:', error.stack);
-    console.error('Error cause:', error.cause);
-    console.error('Error constructor:', error.constructor.name);
-    console.error('Is error instanceof Error:', error instanceof Error);
-    throw error;
-  }
+  // Explicitly create with Express platform
+  const app = await NestFactory.create(AppModule, {
+    logger: ['error', 'warn', 'log', 'debug', 'verbose'],
+  });
 
   // Trigger validated configuration; will throw on invalid env
-  let configService;
-  try {
-    configService = app.get(ValidatedConfigService);
-    console.log('Config service loaded');
-  } catch (error) {
-    console.error('Failed to load config service:', error);
-    throw error;
-  }
+  const configService = app.get(ValidatedConfigService);
 
   // Get and attach logger service
-  let logger;
-  try {
-    logger = app.get(LoggerService);
-    app.useLogger(logger);
-    console.log('Logger service loaded');
-  } catch (error) {
-    console.error('Failed to load logger service:', error);
-    throw error;
-  }
+  const logger = app.get(LoggerService);
+  app.useLogger(logger);
 
   // CORS configuration
   const corsOriginString = configService.get('CORS_ORIGIN');
@@ -160,14 +80,8 @@ async function bootstrap() {
   app.use(cookieParser());
 
   // Logging middleware
-  try {
-    const loggingMiddleware = app.get(LoggingMiddleware);
-    app.use(loggingMiddleware.use.bind(loggingMiddleware));
-    console.log('Logging middleware attached');
-  } catch (error) {
-    console.error('Failed to attach logging middleware:', error);
-    // Don't throw here as it's not critical for startup
-  }
+  const loggingMiddleware = app.get(LoggingMiddleware);
+  app.use(loggingMiddleware.use.bind(loggingMiddleware));
 
   // Global validation pipe
   app.useGlobalPipes(
@@ -206,43 +120,7 @@ async function bootstrap() {
   logger.log(`📚 API Documentation: http://localhost:${port}/api/v1/docs`);
 }
 
-// Enhanced error handling for deployment debugging
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('=== UNHANDLED PROMISE REJECTION ===');
-  console.error('Promise:', promise);
-  console.error('Reason:', reason);
-  console.error('Stack:', reason instanceof Error ? reason.stack : 'No stack available');
-  console.error('=====================================');
-  process.exit(1);
-});
-
-process.on('uncaughtException', (error) => {
-  console.error('=== UNCAUGHT EXCEPTION ===');
-  console.error('Error name:', error.name);
-  console.error('Error message:', error.message);
-  console.error('Error stack:', error.stack);
-  console.error('===========================');
-  process.exit(1);
-});
-
-// Main application error handler
 bootstrap().catch((err) => {
-  console.error('=== APPLICATION STARTUP FAILED ===');
-  console.error('Error name:', err.name);
-  console.error('Error message:', err.message);
-  console.error('Error stack:', err.stack);
-  console.error('Error cause:', err.cause);
-  
-  // Additional context for debugging
-  console.error('Environment check:');
-  console.error('NODE_ENV:', process.env.NODE_ENV);
-  console.error('PORT:', process.env.PORT);
-  console.error('DATABASE_URL exists:', !!process.env.DATABASE_URL);
-  console.error('JWT_SECRET exists:', !!process.env.JWT_SECRET);
-  console.error('CORS_ORIGIN:', process.env.CORS_ORIGIN || '(not set)');
-  console.error('Current working directory:', process.cwd());
-  console.error('Node version:', process.version);
-  console.error('===================================');
-  
+  console.error('Application startup failed:', err);
   process.exit(1);
 });

@@ -10,45 +10,29 @@ export class FirebaseService implements OnModuleInit {
   constructor(private readonly configService: ConfigService) {}
 
   async onModuleInit() {
-    console.log('FirebaseService onModuleInit starting...');
     const serviceAccountPath = this.configService.get<string>(
       'FIREBASE_ADMIN_SDK_PATH',
     );
 
     if (!serviceAccountPath) {
-      console.warn(
-        'FIREBASE_ADMIN_SDK_PATH not configured - Firebase authentication will be disabled',
-      );
-      console.log('FirebaseService onModuleInit completed (no service account)');
       return;
     }
 
     try {
       // Resolve the path relative to the project root
       const resolvedPath = path.resolve(process.cwd(), serviceAccountPath);
-      console.log('Firebase service account path:', resolvedPath);
-      console.log('Current working directory:', process.cwd());
 
       // Read the service account file directly
       const fs = require('fs');
       if (fs.existsSync(resolvedPath)) {
         const serviceAccountContent = fs.readFileSync(resolvedPath, 'utf8');
         const serviceAccount = JSON.parse(serviceAccountContent);
-        console.log(
-          'Service account loaded successfully, project ID:',
-          serviceAccount.project_id,
-        );
 
         this.firebaseApp = admin.initializeApp({
           credential: admin.credential.cert(serviceAccount),
           projectId: this.configService.get<string>('FIREBASE_PROJECT_ID'),
         });
-        console.log('Firebase Admin SDK initialized successfully');
       } else {
-        console.warn(
-          'Firebase service account file not found at:',
-          resolvedPath,
-        );
         // Try alternative paths
         const alternativePaths = [
           path.resolve(
@@ -66,31 +50,21 @@ export class FirebaseService implements OnModuleInit {
         ];
 
         for (const altPath of alternativePaths) {
-          console.log('Trying alternative path:', altPath);
           if (fs.existsSync(altPath)) {
-            console.log('Found file at alternative path:', altPath);
             const serviceAccountContent = fs.readFileSync(altPath, 'utf8');
             const serviceAccount = JSON.parse(serviceAccountContent);
-            console.log(
-              'Service account loaded successfully, project ID:',
-              serviceAccount.project_id,
-            );
 
             this.firebaseApp = admin.initializeApp({
               credential: admin.credential.cert(serviceAccount),
               projectId: this.configService.get<string>('FIREBASE_PROJECT_ID'),
             });
-            console.log('Firebase Admin SDK initialized successfully');
             break;
           }
         }
       }
     } catch (error) {
-      console.warn('Failed to initialize Firebase Admin SDK:', error.message);
-      console.warn('Error details:', error);
-      console.warn('Firebase authentication will be disabled');
+      // Firebase authentication will be disabled
     }
-    console.log('FirebaseService onModuleInit completed');
   }
 
   async verifyIdToken(idToken: string): Promise<admin.auth.DecodedIdToken> {

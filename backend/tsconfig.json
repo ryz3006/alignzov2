@@ -30,7 +30,6 @@
     "dist",
     "node_modules",
     "src/tracing.ts",
-    "src/uploads/**",
     "src/**/*.spec.ts",
     "src/**/*.test.ts"
   ]
