@@ -29,11 +29,21 @@ async function bootstrap() {
     console.log('AppModule type:', typeof AppModule);
     console.log('AppModule constructor:', AppModule.constructor.name);
     
-    app = await NestFactory.create(AppModule, {
+    console.log('About to call NestFactory.create...');
+    
+    // Add timeout to detect hanging
+    const createPromise = NestFactory.create(AppModule, {
       // Disable built-in logger to allow our custom logger to take over
       // once the config is validated and loaded.
       logger: false,
     });
+    
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('NestFactory.create timed out after 30 seconds')), 30000);
+    });
+    
+    app = await Promise.race([createPromise, timeoutPromise]);
+    console.log('NestFactory.create completed successfully');
     console.log('App created successfully, getting services...');
   } catch (error) {
     console.error('FATAL: Failed to create NestJS app');
