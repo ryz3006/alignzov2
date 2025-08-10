@@ -333,15 +333,23 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
     try {
       const expiresAt = ttl ? new Date(Date.now() + ttl * 1000) : new Date(Date.now() + this.defaultTTL * 1000);
       
+      // First try to get the current value
+      const existing = await this.prisma.cache.findUnique({
+        where: { key },
+      });
+      
+      const currentValue = existing ? parseInt(existing.value) || 0 : 0;
+      const newValue = currentValue + 1;
+      
       const result = await this.prisma.cache.upsert({
         where: { key },
         update: {
-          value: { increment: 1 },
+          value: newValue.toString(),
           expiresAt,
         },
         create: {
           key,
-          value: '1',
+          value: newValue.toString(),
           expiresAt,
         },
       });
