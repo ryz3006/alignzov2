@@ -39,14 +39,24 @@ async function bootstrap() {
       providers: [],
     };
     
+    console.log('MinimalModule created:', typeof MinimalModule);
+    console.log('About to call NestFactory.create with minimal module...');
+    
     try {
+      console.log('Creating minimal app...');
       const minimalApp = await NestFactory.create(MinimalModule as any, {
         logger: false,
       });
-      console.log('Minimal module test successful');
+      console.log('Minimal app created successfully');
+      console.log('Closing minimal app...');
       await minimalApp.close();
+      console.log('Minimal module test successful');
     } catch (minimalError) {
-      console.error('Minimal module test failed:', minimalError);
+      console.error('Minimal module test failed:');
+      console.error('Error name:', minimalError.name);
+      console.error('Error message:', minimalError.message);
+      console.error('Error stack:', minimalError.stack);
+      throw minimalError; // Re-throw to see the full error
     }
     
     // Now try the real module
