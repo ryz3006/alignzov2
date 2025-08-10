@@ -20,15 +20,18 @@ export class ValidatedConfigService {
   private readonly env: AppEnv;
 
   constructor(private readonly vaultService: VaultService) {
+    console.log('ValidatedConfigService constructor starting...');
     // Parse environment
     const parsed = EnvSchema.safeParse(process.env);
     if (!parsed.success) {
       const issues = parsed.error.issues
         .map((i) => `${i.path.join('.')}: ${i.message}`)
         .join(', ');
+      console.error('Environment validation failed:', issues);
       throw new Error(`Invalid environment configuration: ${issues}`);
     }
     this.env = parsed.data;
+    console.log('ValidatedConfigService constructor completed successfully');
 
     // Best-effort secret loading from Vault; skip if not configured
     this.loadSecrets();
