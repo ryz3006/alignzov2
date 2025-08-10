@@ -15,12 +15,30 @@ const cookieParser = require('cookie-parser');
 
 async function bootstrap() {
   console.log('Starting app creation...');
-  const app = await NestFactory.create(AppModule, {
-    // Disable built-in logger to allow our custom logger to take over
-    // once the config is validated and loaded.
-    logger: false,
-  });
-  console.log('App created, getting services...');
+  console.log('Current working directory:', process.cwd());
+  console.log('Node version:', process.version);
+  console.log('NODE_ENV:', process.env.NODE_ENV);
+  
+  let app;
+  try {
+    console.log('About to create NestJS app...');
+    console.log('AppModule imports count:', AppModule.imports?.length || 0);
+    console.log('AppModule providers count:', AppModule.providers?.length || 0);
+    
+    app = await NestFactory.create(AppModule, {
+      // Disable built-in logger to allow our custom logger to take over
+      // once the config is validated and loaded.
+      logger: false,
+    });
+    console.log('App created successfully, getting services...');
+  } catch (error) {
+    console.error('FATAL: Failed to create NestJS app');
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    console.error('Error cause:', error.cause);
+    throw error;
+  }
 
   // Trigger validated configuration; will throw on invalid env
   const configService = app.get(ValidatedConfigService);
@@ -122,8 +140,23 @@ async function bootstrap() {
   logger.log(`📚 API Documentation: http://localhost:${port}/api/v1/docs`);
 }
 
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  process.exit(1);
+});
+
 bootstrap().catch((err) => {
   // Fallback to console.error if the logger hasn't been initialized
   console.error('Application failed to start:', err);
+  console.error('Error name:', err.name);
+  console.error('Error message:', err.message);
+  console.error('Error stack:', err.stack);
   process.exit(1);
 });
