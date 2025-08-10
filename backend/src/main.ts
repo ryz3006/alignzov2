@@ -22,8 +22,6 @@ async function bootstrap() {
   let app;
   try {
     console.log('About to create NestJS app...');
-    console.log('AppModule imports count:', AppModule.imports?.length || 0);
-    console.log('AppModule providers count:', AppModule.providers?.length || 0);
     
     app = await NestFactory.create(AppModule, {
       // Disable built-in logger to allow our custom logger to take over
@@ -41,24 +39,39 @@ async function bootstrap() {
   }
 
   // Trigger validated configuration; will throw on invalid env
-  const configService = app.get(ValidatedConfigService);
-  console.log('Config service loaded');
+  let configService;
+  try {
+    configService = app.get(ValidatedConfigService);
+    console.log('Config service loaded');
+  } catch (error) {
+    console.error('Failed to load config service:', error);
+    throw error;
+  }
 
   // Get and attach logger service
-  const logger = app.get(LoggerService);
-  app.useLogger(logger);
-  console.log('Logger service loaded');
+  let logger;
+  try {
+    logger = app.get(LoggerService);
+    app.useLogger(logger);
+    console.log('Logger service loaded');
+  } catch (error) {
+    console.error('Failed to load logger service:', error);
+    throw error;
+  }
 
   // CORS configuration
   const corsOriginString = configService.get('CORS_ORIGIN');
-  const corsOrigins = corsOriginString
-    ? corsOriginString.split(',').map((origin) => origin.trim())
-    : [
-        'http://localhost:3000',
-        'http://localhost:3002',
-      ];
+  let corsOrigins: string[] | boolean;
   
-  logger.log(`Configuring CORS for origins: ${corsOrigins.join(', ')}`);
+  if (corsOriginString) {
+    corsOrigins = corsOriginString.split(',').map((origin) => origin.trim());
+    logger.log(`Configuring CORS for specific origins: ${(corsOrigins as string[]).join(', ')}`);
+  } else {
+    // In production, default to false for security
+    // In development, allow all origins
+    corsOrigins = process.env.NODE_ENV === 'production' ? false : true;
+    logger.log(`CORS configured for ${process.env.NODE_ENV} mode: ${corsOrigins === true ? 'all origins' : 'disabled'}`);
+  }
 
   app.enableCors({
     origin: corsOrigins,
@@ -100,8 +113,14 @@ async function bootstrap() {
   app.use(cookieParser());
 
   // Logging middleware
-  const loggingMiddleware = app.get(LoggingMiddleware);
-  app.use(loggingMiddleware.use.bind(loggingMiddleware));
+  try {
+    const loggingMiddleware = app.get(LoggingMiddleware);
+    app.use(loggingMiddleware.use.bind(loggingMiddleware));
+    console.log('Logging middleware attached');
+  } catch (error) {
+    console.error('Failed to attach logging middleware:', error);
+    // Don't throw here as it's not critical for startup
+  }
 
   // Global validation pipe
   app.useGlobalPipes(
@@ -140,23 +159,43 @@ async function bootstrap() {
   logger.log(`📚 API Documentation: http://localhost:${port}/api/v1/docs`);
 }
 
-// Handle unhandled promise rejections
+// Enhanced error handling for deployment debugging
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  console.error('=== UNHANDLED PROMISE REJECTION ===');
+  console.error('Promise:', promise);
+  console.error('Reason:', reason);
+  console.error('Stack:', reason instanceof Error ? reason.stack : 'No stack available');
+  console.error('=====================================');
   process.exit(1);
 });
 
-// Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception:', error);
+  console.error('=== UNCAUGHT EXCEPTION ===');
+  console.error('Error name:', error.name);
+  console.error('Error message:', error.message);
+  console.error('Error stack:', error.stack);
+  console.error('===========================');
   process.exit(1);
 });
 
+// Main application error handler
 bootstrap().catch((err) => {
-  // Fallback to console.error if the logger hasn't been initialized
-  console.error('Application failed to start:', err);
+  console.error('=== APPLICATION STARTUP FAILED ===');
   console.error('Error name:', err.name);
   console.error('Error message:', err.message);
   console.error('Error stack:', err.stack);
+  console.error('Error cause:', err.cause);
+  
+  // Additional context for debugging
+  console.error('Environment check:');
+  console.error('NODE_ENV:', process.env.NODE_ENV);
+  console.error('PORT:', process.env.PORT);
+  console.error('DATABASE_URL exists:', !!process.env.DATABASE_URL);
+  console.error('JWT_SECRET exists:', !!process.env.JWT_SECRET);
+  console.error('CORS_ORIGIN:', process.env.CORS_ORIGIN || '(not set)');
+  console.error('Current working directory:', process.cwd());
+  console.error('Node version:', process.version);
+  console.error('===================================');
+  
   process.exit(1);
 });
