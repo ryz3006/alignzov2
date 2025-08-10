@@ -13,6 +13,10 @@ import * as path from 'path';
 
 const cookieParser = require('cookie-parser');
 
+// Add early error detection
+console.log('=== MODULE IMPORTS COMPLETED ===');
+console.log('All imports loaded successfully');
+
 async function bootstrap() {
   console.log('Starting app creation...');
   console.log('Current working directory:', process.cwd());
@@ -22,6 +26,8 @@ async function bootstrap() {
   let app;
   try {
     console.log('About to create NestJS app...');
+    console.log('AppModule type:', typeof AppModule);
+    console.log('AppModule constructor:', AppModule.constructor.name);
     
     app = await NestFactory.create(AppModule, {
       // Disable built-in logger to allow our custom logger to take over
@@ -35,6 +41,8 @@ async function bootstrap() {
     console.error('Error message:', error.message);
     console.error('Error stack:', error.stack);
     console.error('Error cause:', error.cause);
+    console.error('Error constructor:', error.constructor.name);
+    console.error('Is error instanceof Error:', error instanceof Error);
     throw error;
   }
 
