@@ -31,7 +31,26 @@ async function bootstrap() {
     
     console.log('About to call NestFactory.create...');
     
-    // Add timeout to detect hanging
+    // Test with a minimal module first
+    console.log('Testing with minimal module...');
+    const MinimalModule = {
+      imports: [],
+      controllers: [],
+      providers: [],
+    };
+    
+    try {
+      const minimalApp = await NestFactory.create(MinimalModule as any, {
+        logger: false,
+      });
+      console.log('Minimal module test successful');
+      await minimalApp.close();
+    } catch (minimalError) {
+      console.error('Minimal module test failed:', minimalError);
+    }
+    
+    // Now try the real module
+    console.log('Testing with real AppModule...');
     const createPromise = NestFactory.create(AppModule, {
       // Disable built-in logger to allow our custom logger to take over
       // once the config is validated and loaded.
