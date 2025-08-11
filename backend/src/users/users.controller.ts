@@ -55,11 +55,12 @@ export class UsersController {
   @UseInterceptors(CachingInterceptor, PaginationInterceptor, EtagInterceptor)
   @ApiOperation({ summary: 'Get all users' })
   @ApiQuery({ name: 'organizationId', required: false })
-  findAll(
+  async findAll(
     @Query('organizationId') organizationId?: string,
     @Request() req?: any,
   ) {
-    return this.usersService.findAll(organizationId, req.user.id);
+    const users = await this.usersService.findAll(organizationId, req.user.id);
+    return { users };
   }
 
   @Get('permissions/me')

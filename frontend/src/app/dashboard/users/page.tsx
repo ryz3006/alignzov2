@@ -129,7 +129,7 @@ function UsersPageContent() {
         throw new Error('Failed to fetch users');
       }
       const data = await response.json();
-      return Array.isArray(data) ? data : data.users || [];
+      return data.users || [];
     },
   });
 
