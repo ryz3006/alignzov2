@@ -112,12 +112,14 @@ async function bootstrap() {
   SwaggerModule.setup('api/v1/docs', app, document);
 
   const port = configService.get('PORT');
-  await app.listen(port);
+  const host = '0.0.0.0';
+  await app.listen(port, host);
 
   const mode = configService.get('NODE_ENV');
+  const backendUrl = configService.get('RENDER_EXTERNAL_URL') || `http://${host}:${port}`;
   logger.log(`🚀 Backend starting in: ${mode.toUpperCase()} mode`);
-  logger.log(`🌐 Backend URL: http://localhost:${port}`);
-  logger.log(`📚 API Documentation: http://localhost:${port}/api/v1/docs`);
+  logger.log(`🌐 Backend URL: ${backendUrl}`);
+  logger.log(`📚 API Documentation: ${backendUrl}/api/v1/docs`);
 }
 
 bootstrap().catch((err) => {
