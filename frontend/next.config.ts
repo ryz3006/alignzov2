@@ -2,6 +2,8 @@ import type { NextConfig } from "next";
 import fs from 'fs';
 import path from 'path';
 
+const renderExternalUrl = process.env.RENDER_EXTERNAL_URL;
+
 // Try to read standardized config.json to map API proxy dynamically
 let apiUrl: string | undefined;
 let usedConfigSource = 'none';
@@ -49,10 +51,11 @@ try {
 
 const nextConfig: NextConfig = {
   async rewrites() {
+    const backendUrl = renderExternalUrl || apiUrl || 'http://localhost:3001';
     return [
       {
         source: '/api/:path*',
-        destination: (apiUrl || 'http://localhost:3001') + '/api/:path*',
+        destination: `${backendUrl}/api/:path*`,
       },
     ];
   },
@@ -81,7 +84,7 @@ const nextConfig: NextConfig = {
     ALIGNZO_START_MODE: process.env.NODE_ENV === 'production' ? 'PROD' : 'DEV',
     ALIGNZO_CONFIG_SOURCE: usedConfigSource,
     // Expose API base URL to client — prefer config file; do not let env override
-    NEXT_PUBLIC_API_URL: apiUrl || 'http://localhost:3001',
+    NEXT_PUBLIC_API_URL: renderExternalUrl || apiUrl || 'http://localhost:3001',
     // Map Firebase config from file if present (still allow env overrides for Firebase only)
     NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || firebaseFromConfig?.apiKey || '',
     NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || firebaseFromConfig?.authDomain || '',
