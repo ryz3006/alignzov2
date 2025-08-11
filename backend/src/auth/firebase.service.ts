@@ -10,60 +10,25 @@ export class FirebaseService implements OnModuleInit {
   constructor(private readonly configService: ConfigService) {}
 
   async onModuleInit() {
-    const serviceAccountPath = this.configService.get<string>(
-      'FIREBASE_ADMIN_SDK_PATH',
-    );
+    const projectId = this.configService.get<string>('FIREBASE_PROJECT_ID');
+    const clientEmail = this.configService.get<string>('FIREBASE_CLIENT_EMAIL');
+    const privateKey = this.configService.get<string>('FIREBASE_PRIVATE_KEY');
 
-    if (!serviceAccountPath) {
-      return;
-    }
-
-    try {
-      // Resolve the path relative to the project root
-      const resolvedPath = path.resolve(process.cwd(), serviceAccountPath);
-
-      // Read the service account file directly
-      const fs = require('fs');
-      if (fs.existsSync(resolvedPath)) {
-        const serviceAccountContent = fs.readFileSync(resolvedPath, 'utf8');
-        const serviceAccount = JSON.parse(serviceAccountContent);
+    if (projectId && clientEmail && privateKey) {
+      try {
+        const serviceAccount: admin.ServiceAccount = {
+          projectId,
+          clientEmail,
+          privateKey: privateKey.replace(/\\n/g, '\n'),
+        };
 
         this.firebaseApp = admin.initializeApp({
           credential: admin.credential.cert(serviceAccount),
-          projectId: this.configService.get<string>('FIREBASE_PROJECT_ID'),
+          projectId,
         });
-      } else {
-        // Try alternative paths
-        const alternativePaths = [
-          path.resolve(
-            __dirname,
-            '../../configs/firebase/dalignzo-firebase-adminsdk-fbsvc-326bf38898.json',
-          ),
-          path.resolve(
-            process.cwd(),
-            '../configs/firebase/dalignzo-firebase-adminsdk-fbsvc-326bf38898.json',
-          ),
-          path.resolve(
-            process.cwd(),
-            '../../configs/firebase/dalignzo-firebase-adminsdk-fbsvc-326bf38898.json',
-          ),
-        ];
-
-        for (const altPath of alternativePaths) {
-          if (fs.existsSync(altPath)) {
-            const serviceAccountContent = fs.readFileSync(altPath, 'utf8');
-            const serviceAccount = JSON.parse(serviceAccountContent);
-
-            this.firebaseApp = admin.initializeApp({
-              credential: admin.credential.cert(serviceAccount),
-              projectId: this.configService.get<string>('FIREBASE_PROJECT_ID'),
-            });
-            break;
-          }
-        }
+      } catch (error) {
+        // Firebase authentication will be disabled
       }
-    } catch (error) {
-      // Firebase authentication will be disabled
     }
   }
 

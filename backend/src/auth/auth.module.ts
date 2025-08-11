@@ -31,7 +31,7 @@ import { DeviceSessionsModule } from '../device-sessions/device-sessions.module'
     DeviceSessionsModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, GoogleStrategy, FirebaseService],
+  providers: [AuthService, JwtStrategy, FirebaseService],
   exports: [AuthService, JwtStrategy, PassportModule],
 })
 export class AuthModule {}
