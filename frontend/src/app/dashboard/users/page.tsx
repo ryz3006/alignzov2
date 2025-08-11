@@ -129,7 +129,7 @@ function UsersPageContent() {
         throw new Error('Failed to fetch users');
       }
       const data = await response.json();
-      return data || [];
+      return Array.isArray(data) ? data : data.users || [];
     },
   });
 
@@ -203,7 +203,7 @@ function UsersPageContent() {
   });
 
   // Filter users based on search and filters
-  const filteredUsers = users.filter((user: User) => {
+  const filteredUsers = Array.isArray(users) ? users.filter((user: User) => {
     const matchesSearch = (user.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
                          (user.firstName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
                          (user.lastName?.toLowerCase() || '').includes(searchTerm.toLowerCase());
@@ -216,7 +216,7 @@ function UsersPageContent() {
                          (statusFilter === 'inactive' && !user.isActive);
     
     return matchesSearch && matchesRole && matchesStatus;
-  });
+  }) : [];
 
   const getRoleColor = (role: string) => {
     switch (role) {
